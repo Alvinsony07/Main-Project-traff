@@ -19,7 +19,8 @@ class VehicleDetector:
         if exclude_boxes is None:
             exclude_boxes = []
             
-        results = self.model(frame, stream=True, verbose=False, conf=self.confidence)
+        # Use a very low base confidence so we don't miss small objects like bikes
+        results = self.model(frame, stream=True, verbose=False, conf=0.1)
         
         counts = {name: 0 for name in self.class_names.values()}
         total_count = 0
@@ -31,6 +32,16 @@ class VehicleDetector:
             for box in result.boxes:
                 cls_id = int(box.cls[0])
                 if cls_id in self.target_classes:
+                    conf = box.conf[0]
+                    
+                    # Apply specific confidence thresholds based on vehicle size
+                    # Bikes/Motorcycles are smaller, so we accept lower confidence
+                    if cls_id in [1, 3] and conf < 0.1: # bicycle, motorcycle
+                        continue
+                    # Cars/Trucks/Buses are larger, require higher confidence to avoid false positives
+                    elif cls_id in [2, 5, 7] and conf < self.confidence:
+                        continue
+                        
                     x1, y1, x2, y2 = map(int, box.xyxy[0])
                     
                     # Overlap Check
@@ -48,7 +59,6 @@ class VehicleDetector:
                     counts[name] += 1
                     total_count += 1
                     
-                    conf = box.conf[0]
                     label = f"{name} {int(conf*100)}%"
                     color = (0, 255, 0)
                     

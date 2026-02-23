@@ -126,6 +126,13 @@ class VideoProcessor:
                                     with self.app.app_context():
                                         stats = LaneStats(lane_id=i+1, vehicle_count=total, density=density_label)
                                         db.session.add(stats)
+                                        
+                                        # Also log the specific vehicle breakdown for Analytics pie chart
+                                        for v_type, v_count in counts.items():
+                                            if v_count > 0:
+                                                v_log = VehicleLog(lane_id=i+1, vehicle_type=v_type, count=v_count)
+                                                db.session.add(v_log)
+                                                
                                         db.session.commit()
                                         
                                         if i == 3: # Update global timer

@@ -212,6 +212,15 @@
                     <span class="custom-slider"></span>
                 </label>
 
+                <!-- Traffic Toggle -->
+                <i class="fas fa-car-side" id="traffic-icon"
+                    style="color: var(--text-secondary); transition: 0.3s;"></i>
+                <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Traffic</span>
+                <label class="custom-toggle" style="margin-right: 15px;">
+                    <input type="checkbox" id="traffic-toggle-btn">
+                    <span class="custom-slider"></span>
+                </label>
+
                 <!-- Track Location Toggle -->
                 <i class="fas fa-crosshairs" id="locate-icon"
                     style="color: var(--text-secondary); transition: 0.3s;"></i>
@@ -439,7 +448,7 @@
                             const details = d.details || {};
                             document.getElementById(`count-car-${i}`).innerText = details.car || details.Car || 0;
                             document.getElementById(`count-truck-${i}`).innerText = (details.truck || 0) + (details.bus || 0);
-                            document.getElementById(`count-bike-${i}`).innerText = details.motorcycle || details.bike || 0;
+                            document.getElementById(`count-bike-${i}`).innerText = (details.motorcycle || 0) + (details.bicycle || 0);
                         }
                     }
                 });
@@ -496,7 +505,7 @@
                                 <span style="color:var(--text); font-weight:bold;">${r.location}</span>
                                 <span class="time">${r.timestamp}</span>
                             </div>
-                            <span class="msg" style="color:#ccc;">${r.description || 'Reported Incident'}</span>
+                            <span class="msg" style="color:#ccc;">${r.description || 'No details'}</span>
                             <div style="font-size:0.75rem; text-align:right; margin-top:4px; color:${color}">
                                 <i class="fas fa-${icon}"></i> ${r.status}
                             </div>
@@ -534,6 +543,12 @@
             maxZoom: 19
         });
 
+        // Google Live Traffic Overlay Layer
+        var trafficLayer = L.tileLayer('https://mt1.google.com/vt?lyrs=h,traffic&x={x}&y={y}&z={z}', {
+            attribution: 'Traffic &copy; Google',
+            maxZoom: 20
+        });
+
         // Add default visible layer
         standardLayer.addTo(map);
 
@@ -547,6 +562,23 @@
             } else {
                 map.removeLayer(satelliteLayer);
                 standardLayer.addTo(map);
+                icon.style.color = 'var(--text-secondary)';
+            }
+
+            // Keep traffic on top if active
+            if (document.getElementById('traffic-toggle-btn').checked) {
+                trafficLayer.bringToFront();
+            }
+        });
+
+        // Traffic Toggle Logic
+        document.getElementById('traffic-toggle-btn').addEventListener('change', function () {
+            var icon = document.getElementById('traffic-icon');
+            if (this.checked) {
+                trafficLayer.addTo(map);
+                icon.style.color = 'var(--warning)'; // Orange for warning/traffic
+            } else {
+                map.removeLayer(trafficLayer);
                 icon.style.color = 'var(--text-secondary)';
             }
         });

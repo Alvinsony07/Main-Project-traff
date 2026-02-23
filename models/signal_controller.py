@@ -48,20 +48,24 @@ class SignalController:
                     # Switch to Red
                     self.states[self.current_green_lane] = "RED"
                     
-                    # --- SMART SKIP LOGIC ---
-                    # Determine next lane based on density
+                    # --- DENSITY PRIORITY LOGIC ---
+                    # Feature Request: Analyze existing traffic and adjust lights accordingly
                     lane_counts = get_lane_counts_callback()
                     
                     next_lane = -1
-                    # Check next 3 lanes in sequence (Round Robin but skippable)
-                    for offset in range(1, self.num_lanes):
-                        candidate = (self.current_green_lane + offset) % self.num_lanes
-                        # If lane has vehicles, pick it
-                        if lane_counts.get(candidate, 0) > 0:
-                            next_lane = candidate
-                            break
+                    max_vehicles = -1
                     
-                    # If all others empty, just go to immediate next (fallback)
+                    # 1. Analyze all waiting lanes to find the highest traffic density
+                    for candidate in range(self.num_lanes):
+                        if candidate == self.current_green_lane:
+                            continue # Skip the one that just finished
+                            
+                        count = lane_counts.get(candidate, 0)
+                        if count > max_vehicles and count > 0:
+                            max_vehicles = count
+                            next_lane = candidate
+                    
+                    # 2. If traffic is empty or uniform zero, fallback to standard cycle
                     if next_lane == -1:
                         next_lane = (self.current_green_lane + 1) % self.num_lanes
 
