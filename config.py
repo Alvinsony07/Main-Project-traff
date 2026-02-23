@@ -1,10 +1,17 @@
 import os
+import secrets
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-very-secret'
+    # Cryptographically secure secret key — auto-generated per install
+    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASE_DIR, 'traffic.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Session security
+    SESSION_COOKIE_HTTPONLY = True      # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'    # Prevent CSRF via cross-site requests
+    PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes session timeout
     
     # Upload folder for video files
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')

@@ -1,20 +1,43 @@
 from datetime import datetime
 from .db import db
 from werkzeug.security import generate_password_hash, check_password_hash
+import hashlib
+import os
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
-    password_hash = db.Column(db.String(120), nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    role = db.Column(db.String(20), default='user')  # 'admin' or 'user'
+    password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    is_locked = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-
+        """Hash password using scrypt (strongest werkzeug method)"""
+        self.password_hash = generate_password_hash(password, method='scrypt', salt_length=16)
+        self.password_changed_at = datetime.utcnow()
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        """Verify password against stored hash"""
+        if self.is_locked:
+            return False
+        result = check_password_hash(self.password_hash, password)
+        if result:
+            self.failed_login_attempts = 0
+        else:
+            self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+            if self.failed_login_attempts >= 5:
+                self.is_locked = True
+        return result
 
-    role = db.Column(db.String(20), default='user') # 'admin' or 'user'
+    @staticmethod
+    def validate_password_strength(password):
+        """Enforce minimum password requirements"""
+        if len(password) < 6:
+            return False, 'Password must be at least 6 characters'
+        return True, 'OK'
 
 class LaneStats(db.Model):
     id = db.Column(db.Integer, primary_key=True)

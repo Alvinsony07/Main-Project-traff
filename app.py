@@ -51,13 +51,27 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         
+        # Check if account is locked
+        if user and user.is_locked:
+            msg = 'Account locked due to too many failed attempts. Contact admin.'
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'success': False, 'message': msg})
+            flash(msg)
+            return render_template('login.html')
+        
         if user and user.check_password(password):
             session['user_id'] = user.id
+            session.permanent = True  # Enable session timeout
+            db.session.commit()  # Persist reset of failed_login_attempts
             redirect_url = url_for('dashboard') if user.role == 'admin' else url_for('user.dashboard')
             
             if request.headers.get('Accept') == 'application/json':
                 return jsonify({'success': True, 'redirect': redirect_url})
             return redirect(redirect_url)
+        
+        # Persist failed login attempt counter
+        if user:
+            db.session.commit()
             
         if request.headers.get('Accept') == 'application/json':
             return jsonify({'success': False, 'message': 'Invalid credentials'})
@@ -347,6 +361,21 @@ def create_admin():
             db.session.add(u)
             db.session.commit()
             print("Admin user created (admin/admin123)")
+
+@app.cli.command("unlock-user")
+def unlock_user():
+    """Unlock a locked user account"""
+    import sys
+    username = input("Username to unlock: ").strip()
+    with app.app_context():
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.is_locked = False
+            user.failed_login_attempts = 0
+            db.session.commit()
+            print(f"User '{username}' has been unlocked.")
+        else:
+            print(f"User '{username}' not found.")
 
 if __name__ == '__main__':
     # Start the app

@@ -8,8 +8,18 @@ user_bp = Blueprint('user', __name__, url_prefix='/user')
 @user_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
+        
+        if not username or len(username) < 3:
+            flash('Username must be at least 3 characters')
+            return redirect(url_for('user.register'))
+        
+        # Validate password strength
+        is_valid, msg = User.validate_password_strength(password)
+        if not is_valid:
+            flash(msg)
+            return redirect(url_for('user.register'))
         
         if User.query.filter_by(username=username).first():
             flash('Username already exists')
