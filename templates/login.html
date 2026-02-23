@@ -58,9 +58,30 @@
 
             {% with messages = get_flashed_messages() %}
             {% if messages %}
-            <div
-                style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; border: 1px solid rgba(239,68,68,0.3);">
-                <i class="fas fa-exclamation-circle"></i> {{ messages[0] }}
+            {% set is_success = 'success' in messages[0].lower() %}
+            {% set icon = 'fa-check-circle' if is_success else 'fa-exclamation-circle' %}
+            <style>
+                .flash-msg {
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    margin-bottom: 1.5rem;
+                    font-size: 0.9rem;
+                }
+
+                .flash-msg.success {
+                    background: rgba(16, 185, 129, 0.2);
+                    color: #10b981;
+                    border: 1px solid #10b981;
+                }
+
+                .flash-msg.error {
+                    background: rgba(239, 68, 68, 0.2);
+                    color: #ef4444;
+                    border: 1px solid #ef4444;
+                }
+            </style>
+            <div class="flash-msg {{ 'success' if is_success else 'error' }}">
+                <i class="fas {{ icon }}"></i> {{ messages[0] }}
             </div>
             {% endif %}
             {% endwith %}

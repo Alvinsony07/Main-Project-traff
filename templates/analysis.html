@@ -103,11 +103,13 @@
     <script>
         // Chart Config
         Chart.defaults.color = '#94a3b8';
-        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
 
         document.addEventListener('DOMContentLoaded', function () {
-            fetch('/api/stats')
-                .then(res => res.json())
+            fetch('/api/stats?t=' + new Date().getTime())
+                .then(res => {
+                    if (!res.ok) throw new Error("API Returned " + res.status);
+                    return res.json();
+                })
                 .then(data => {
                     const hasData = (data.trend && data.trend.length > 0);
 
@@ -251,7 +253,14 @@
 
 
                 })
-                .catch(err => console.error("Error loading analytics:", err));
+                .catch(err => {
+                    console.error("Error loading analytics:", err);
+                    const msg = "Error: " + err.message;
+                    showNoData('trendChart', msg);
+                    showNoData('distChart', msg);
+                    showNoData('peakChart', msg);
+                    showNoData('laneChart', msg);
+                });
         });
 
         function showNoData(canvasId, msg) {

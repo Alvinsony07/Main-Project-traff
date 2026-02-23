@@ -48,3 +48,16 @@ class AccidentReport(db.Model):
     
     user = db.relationship('User', backref=db.backref('reports', lazy=True))
 
+class DispatchLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    report_id = db.Column(db.Integer, db.ForeignKey('accident_report.id'), nullable=False)
+    hospital_name = db.Column(db.String(255), nullable=False)
+    hospital_lat = db.Column(db.Float, nullable=True)
+    hospital_lng = db.Column(db.Float, nullable=True)
+    accident_lat = db.Column(db.Float, nullable=True)
+    accident_lng = db.Column(db.Float, nullable=True)
+    distance_km = db.Column(db.Float, nullable=True)
+    status = db.Column(db.String(20), default='Dispatched')  # Dispatched, En Route, Arrived
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    report = db.relationship('AccidentReport', backref=db.backref('dispatches', lazy=True))

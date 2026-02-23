@@ -1,7 +1,7 @@
 from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, session, flash, make_response
 from config import Config
 from database.db import init_db, db
-from database.models import User, LaneStats
+from database.models import User, LaneStats, VehicleLog, DispatchLog, AccidentReport
 from models.signal_controller import SignalController
 from utils.video_processor import VideoProcessor
 from blueprints.user import user_bp
@@ -249,6 +249,88 @@ def override_signal():
         return jsonify({'success': success})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/dispatch', methods=['POST'])
+def dispatch_ambulance():
+    """Record an ambulance dispatch to the database"""
+    try:
+        data = request.json
+        dispatch = DispatchLog(
+            report_id=int(data.get('report_id', 0)),
+            hospital_name=data.get('hospital_name', 'Unknown'),
+            hospital_lat=data.get('hospital_lat'),
+            hospital_lng=data.get('hospital_lng'),
+            accident_lat=data.get('accident_lat'),
+            accident_lng=data.get('accident_lng'),
+            distance_km=data.get('distance_km'),
+            status='Dispatched'
+        )
+        db.session.add(dispatch)
+        db.session.commit()
+        return jsonify({'success': True, 'dispatch_id': dispatch.id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/dispatch/active')
+def get_active_dispatches():
+    """Get active dispatches for the ambulance driver portal"""
+    dispatches = DispatchLog.query.filter(
+        DispatchLog.status.in_(['Dispatched', 'En Route', 'Arrived', 'Patient Loaded'])
+    ).order_by(DispatchLog.timestamp.desc()).all()
+    return jsonify({
+        'dispatches': [{
+            'id': d.id,
+            'report_id': d.report_id,
+            'hospital_name': d.hospital_name,
+            'hospital_lat': d.hospital_lat,
+            'hospital_lng': d.hospital_lng,
+            'accident_lat': d.accident_lat,
+            'accident_lng': d.accident_lng,
+            'distance_km': d.distance_km,
+            'status': d.status,
+            'timestamp': d.timestamp.strftime('%H:%M:%S'),
+            'description': d.report.description if d.report else '',
+            'location': d.report.location if d.report else ''
+        } for d in dispatches]
+    })
+
+@app.route('/api/dispatch/<int:dispatch_id>/accept', methods=['POST'])
+def accept_dispatch(dispatch_id):
+    """Ambulance driver accepts a dispatch"""
+    d = DispatchLog.query.get(dispatch_id)
+    if d:
+        d.status = 'En Route'
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/api/dispatch/<int:dispatch_id>/decline', methods=['POST'])
+def decline_dispatch(dispatch_id):
+    """Ambulance driver declines a dispatch"""
+    d = DispatchLog.query.get(dispatch_id)
+    if d:
+        d.status = 'Declined'
+        db.session.commit()
+        return jsonify({'success': True})
+    return jsonify({'success': False})
+
+@app.route('/api/dispatch/<int:dispatch_id>/status', methods=['POST'])
+def update_dispatch_status(dispatch_id):
+    """Update dispatch status to any valid step"""
+    d = DispatchLog.query.get(dispatch_id)
+    if d:
+        new_status = request.json.get('status', '')
+        valid = ['Dispatched', 'En Route', 'Arrived', 'Patient Loaded', 'Complete', 'Declined']
+        if new_status in valid:
+            d.status = new_status
+            db.session.commit()
+            return jsonify({'success': True, 'status': new_status})
+    return jsonify({'success': False})
+
+@app.route('/ambulance')
+def ambulance_portal():
+    """Ambulance Driver Portal - receives live dispatch alerts"""
+    return render_template('ambulance.html')
 
 @app.cli.command("create-admin")
 def create_admin():

@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Emergency Response Unit | Traffic Vision AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg-primary: #060a14;
+            --bg-card: #0d1220;
+            --bg-elevated: #111827;
+            --bg-surface: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --text-primary: #f0f4ff;
+            --text-secondary: #7b8baa;
+            --text-muted: #3d4a66;
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.15);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.15);
+            --purple: #8b5cf6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* === TOP BAR === */
+        .top-bar {
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            backdrop-filter: blur(20px);
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .top-bar-logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: white;
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+        }
+
+        .top-bar-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+        .top-bar-sub {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+        }
+
+        .icon-btn.muted {
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.3);
+            background: var(--danger-glow);
+        }
+
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .live-badge.on {
+            background: var(--success-glow);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--success);
+        }
+
+        .live-badge.off {
+            background: var(--danger-glow);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: var(--danger);
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.3
+            }
+        }
+
+        /* === ALERT STRIP === */
+        .alert-strip {
+            background: linear-gradient(90deg, #dc2626, var(--danger));
+            color: white;
+            text-align: center;
+            padding: 8px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .alert-strip.show {
+            display: flex;
+            animation: stripIn 0.3s ease-out;
+        }
+
+        .alert-strip i {
+            animation: ring 0.6s ease-in-out infinite;
+        }
+
+        @keyframes ring {
+
+            0%,
+            100% {
+                transform: rotate(0)
+            }
+
+            25% {
+                transform: rotate(15deg)
+            }
+
+            75% {
+                transform: rotate(-15deg)
+            }
+        }
+
+        @keyframes stripIn {
+            from {
+                transform: translateY(-100%)
+            }
+
+            to {
+                transform: translateY(0)
+            }
+        }
+
+        /* === DRIVER PROFILE === */
+        .driver-bar {
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .driver-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            color: white;
+            font-weight: 700;
+        }
+
+        .driver-name {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .driver-unit {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .shift-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--accent-glow);
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        /* === STATS ROW === */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .stat-box {
+            background: var(--bg-primary);
+            padding: 10px 6px;
+            text-align: center;
+        }
+
+        .stat-box .val {
+            font-size: 1.3rem;
+            font-weight: 900;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-box .lbl {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 3px;
+        }
+
+        /* === MAIN === */
+        .main {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 12px;
+        }
+
+        /* === EMPTY STATE === */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .empty-icon-wrap {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.25rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state h3 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            max-width: 280px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        .scan-bar {
+            width: 100px;
+            height: 2px;
+            margin: 1.5rem auto 0;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            animation: scan 2s ease-in-out infinite;
+        }
+
+        @keyframes scan {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scaleX(0.5)
+            }
+
+            50% {
+                opacity: 1;
+                transform: scaleX(1)
+            }
+        }
+
+        /* === DISPATCH CARD === */
+        .d-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            margin-bottom: 12px;
+            overflow: hidden;
+            animation: cardUp 0.4s ease-out;
+            transition: all 0.4s ease;
+        }
+
+        .d-card.prio-crit {
+            border-left: 3px solid var(--danger);
+        }
+
+        .d-card.prio-active {
+            border-left: 3px solid var(--success);
+        }
+
+        .d-card.prio-scene {
+            border-left: 3px solid var(--warning);
+        }
+
+        @keyframes cardUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* Card Header */
+        .d-head {
+            padding: 12px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent);
+        }
+
+        .sev-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .sev-tag.crit {
+            background: var(--danger-glow);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .sev-tag.route {
+            background: var(--success-glow);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .sev-tag.scene {
+            background: var(--warning-glow);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+        }
+
+        .sev-tag i.pulse {
+            animation: blink 1s infinite;
+        }
+
+        .d-head-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .elapsed-chip {
+            background: var(--warning-glow);
+            color: var(--warning);
+            padding: 2px 7px;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.65rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Card Body */
+        .d-body {
+            padding: 14px;
+        }
+
+        /* Incident Type */
+        .incident-type {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--purple);
+            background: rgba(139, 92, 246, 0.12);
+            color: var(--purple);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+        }
+
+        /* Location */
+        .loc-block {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .loc-label {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .loc-label i {
+            color: var(--danger);
+        }
+
+        .loc-addr {
+            font-size: 0.95rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+
+        .loc-desc {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        /* Mini Map */
+        .map-wrap {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+            height: 160px;
+            position: relative;
+        }
+
+        .map-wrap .leaflet-container {
+            background: #0d1117;
+        }
+
+        .map-overlay {
+            position: absolute;
+            bottom: 8px;
+            left: 8px;
+            z-index: 500;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .map-overlay .dot-red {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .map-overlay .dot-blue {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        /* Meta */
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .meta-cell {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 4px;
+            text-align: center;
+        }
+
+        .meta-cell .ml {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+
+        .meta-cell .mv {
+            font-size: 0.85rem;
+            font-weight: 800;
+        }
+
+        .mv.c-red {
+            color: var(--danger);
+        }
+
+        .mv.c-orange {
+            color: var(--warning);
+        }
+
+        .mv.c-blue {
+            color: var(--accent);
+        }
+
+        .mv.c-green {
+            color: var(--success);
+        }
+
+        /* Timeline */
+        .timeline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: var(--border);
+            transform: translateY(-8px);
+        }
+
+        .tl-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .tl-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            border: 2px solid var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            transition: all 0.3s;
+        }
+
+        .tl-dot.done {
+            border-color: var(--success);
+            color: var(--success);
+            background: var(--success-glow);
+        }
+
+        .tl-dot.now {
+            border-color: var(--warning);
+            color: var(--warning);
+            background: var(--warning-glow);
+            animation: tlPulse 2s infinite;
+        }
+
+        @keyframes tlPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.3)
+            }
+
+            50% {
+                box-shadow: 0 0 0 6px transparent
+            }
+        }
+
+        .tl-txt {
+            font-size: 0.5rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .tl-step.complete .tl-txt {
+            color: var(--success);
+        }
+
+        .tl-step.current .tl-txt {
+            color: var(--warning);
+        }
+
+        /* Quick Messages */
+        .qm-section {
+            margin-bottom: 12px;
+        }
+
+        .qm-label {
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 6px;
+        }
+
+        .qm-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .qm-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .qm-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--text-primary);
+            border-color: var(--border-light);
+        }
+
+        .qm-btn.sent {
+            background: var(--success-glow);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.3);
+            pointer-events: none;
+        }
+
+        /* Action Buttons */
+        .d-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .act-btn {
+            flex: 1;
+            padding: 11px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+            text-decoration: none;
+            color: white;
+        }
+
+        .act-btn:active {
+            transform: scale(0.97);
+        }
+
+        .a-accept {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+        }
+
+        .a-accept:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .a-nav {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+        }
+
+        .a-nav:hover {
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .a-decline {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.2) !important;
+            color: var(--danger);
+            min-width: 42px;
+            max-width: 42px;
+            font-size: 1rem;
+        }
+
+        .a-decline:hover {
+            background: var(--danger-glow);
+        }
+
+        .a-disabled {
+            background: var(--success) !important;
+            opacity: 0.6;
+            cursor: default;
+        }
+
+        .a-disabled:hover {
+            box-shadow: none;
+            transform: none;
+        }
+
+        /* Status Action Buttons (for en-route/arrived states) */
+        .status-actions {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 12px;
+        }
+
+        .sa-btn {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .sa-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-primary);
+        }
+
+        .sa-btn.primary {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+            border: none;
+        }
+
+        .sa-btn.complete {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+        }
+
+        /* Footer */
+        .app-foot {
+            text-align: center;
+            padding: 2rem 1rem;
+            font-size: 0.55rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        @media (max-width: 400px) {
+            .meta-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .top-bar {
+                padding: 0.5rem 0.7rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <div class="top-bar-logo"><i class="fas fa-truck-medical"></i></div>
+            <div>
+                <div class="top-bar-title">Emergency Response Unit</div>
+                <div class="top-bar-sub">Traffic Vision AI Network</div>
+            </div>
+        </div>
+        <div class="top-bar-right">
+            <button class="icon-btn" id="mute-btn" onclick="toggleMute()" title="Mute Alerts">
+                <i class="fas fa-volume-high" id="mute-icon"></i>
+            </button>
+            <div class="live-badge on" id="conn-badge">
+                <div class="live-dot"></div><span id="conn-text">LIVE</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert-strip" id="alert-strip"><i class="fas fa-bell"></i><span>INCOMING EMERGENCY DISPATCH</span></div>
+
+    <div class="driver-bar">
+        <div class="driver-info">
+            <div class="driver-avatar">E1</div>
+            <div>
+                <div class="driver-name">Emergency Unit 1</div>
+                <div class="driver-unit">Ambulance #AMB-2461 &middot; ALS Equipped</div>
+            </div>
+        </div>
+        <div class="shift-badge"><i class="fas fa-clock" style="margin-right:4px;"></i> On Duty</div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat-box">
+            <div class="val" style="color:var(--danger)" id="s-pending">0</div>
+            <div class="lbl">Pending</div>
+        </div>
+        <div class="stat-box">
+            <div class="val" style="color:var(--warning)" id="s-enroute">0</div>
+            <div class="lbl">En Route</div>
+        </div>
+        <div class="stat-box">
+            <div class="val" style="color:var(--success)" id="s-total">0</div>
+            <div class="lbl">Active</div>
+        </div>
+        <div class="stat-box">
+            <div class="val" style="color:var(--accent)" id="s-clock">--:--</div>
+            <div class="lbl">Time</div>
+        </div>
+    </div>
+
+    <div class="main" id="dispatch-container">
+        <div class="empty-state" id="empty-state">
+            <div class="empty-icon-wrap"><i class="fas fa-satellite-dish"></i></div>
+            <h3>Standing By</h3>
+            <p>Monitoring emergency channel. Alerts will appear here when dispatched.</p>
+            <div class="scan-bar"></div>
+        </div>
+    </div>
+
+    <div class="app-foot">Traffic Vision AI &copy; 2026 &middot; Emergency Response v3.0 &middot; AES-256 Encrypted
+    </div>
+
+    <script>
+        let knownIds = new Set();
+        let firstLoad = true;
+        let isMuted = false;
+        let miniMaps = {};
+        let failCount = 0; // Tolerance for OFFLINE status
+        let lastDataHash = ''; // Skip unnecessary DOM rebuilds
+
+        // Clock
+        function tick() {
+            document.getElementById('s-clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+        setInterval(tick, 1000); tick();
+
+        // Mute
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-icon').className = isMuted ? 'fas fa-volume-xmark' : 'fas fa-volume-high';
+            document.getElementById('mute-btn').classList.toggle('muted', isMuted);
+        }
+
+        // Audio
+        function playAlert() {
+            if (isMuted) return;
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                [{ f: 880, d: 0 }, { f: 1100, d: 0.18 }, { f: 880, d: 0.36 }, { f: 1100, d: 0.54 }].forEach(p => {
+                    const o = ctx.createOscillator(), g = ctx.createGain();
+                    o.connect(g); g.connect(ctx.destination);
+                    o.frequency.value = p.f; o.type = 'sine'; g.gain.value = 0.2;
+                    o.start(ctx.currentTime + p.d); o.stop(ctx.currentTime + p.d + 0.1);
+                });
+            } catch (e) { }
+        }
+        function speak(t) {
+            if (isMuted) return;
+            try { const m = new SpeechSynthesisUtterance(t); m.rate = 1.05; window.speechSynthesis.speak(m); } catch (e) { }
+        }
+
+        // Elapsed
+        function elapsed(ts) {
+            const p = ts.split(':');
+            const now = new Date();
+            const then = new Date(); then.setHours(+p[0], +p[1], +p[2], 0);
+            let s = Math.max(0, Math.floor((now - then) / 1000));
+            const h = Math.floor(s / 3600); s %= 3600;
+            const m = Math.floor(s / 60); s %= 60;
+            return h > 0 ? `${h}h ${m}m` : `${m}m ${String(s).padStart(2, '0')}s`;
+        }
+
+        function eta(km) {
+            if (!km) return 'N/A';
+            const min = Math.ceil((km / 40) * 60);
+            return min < 1 ? '<1 min' : `~${min} min`;
+        }
+
+        function classifyIncident(desc) {
+            if (!desc) return { icon: 'fa-car-burst', label: 'Vehicle Accident' };
+            const d = desc.toLowerCase();
+            if (d.includes('bike') || d.includes('motorcycle') || d.includes('two wheeler')) return { icon: 'fa-motorcycle', label: 'Two-Wheeler Accident' };
+            if (d.includes('truck') || d.includes('lorry')) return { icon: 'fa-truck', label: 'Heavy Vehicle Accident' };
+            if (d.includes('bus')) return { icon: 'fa-bus', label: 'Bus Accident' };
+            if (d.includes('pedestrian') || d.includes('walk')) return { icon: 'fa-person-walking', label: 'Pedestrian Hit' };
+            if (d.includes('fire')) return { icon: 'fa-fire', label: 'Vehicle Fire' };
+            if (d.includes('head') || d.includes('collision')) return { icon: 'fa-car-burst', label: 'Head-on Collision' };
+            return { icon: 'fa-car-burst', label: 'Vehicle Accident' };
+        }
+
+        // Timeline helper
+        function buildTimeline(status) {
+            const steps = [
+                { key: 'Dispatched', icon: 'fa-tower-broadcast', label: 'Dispatched' },
+                { key: 'En Route', icon: 'fa-truck-fast', label: 'En Route' },
+                { key: 'Arrived', icon: 'fa-location-dot', label: 'On Scene' },
+                { key: 'Patient Loaded', icon: 'fa-bed-pulse', label: 'Patient' },
+                { key: 'Complete', icon: 'fa-flag-checkered', label: 'Complete' }
+            ];
+            const order = ['Dispatched', 'En Route', 'Arrived', 'Patient Loaded', 'Complete'];
+            const idx = order.indexOf(status);
+
+            return steps.map((s, i) => {
+                let cls = '', dotCls = '';
+                if (i < idx) { cls = 'complete'; dotCls = 'done'; }
+                else if (i === idx) { cls = 'current'; dotCls = 'now'; }
+                return `<div class="tl-step ${cls}">
+            <div class="tl-dot ${dotCls}"><i class="fas ${s.icon}"></i></div>
+            <span class="tl-txt">${s.label}</span>
+        </div>`;
+            }).join('');
+        }
+
+        // Status action buttons
+        function buildStatusActions(d) {
+            const s = d.status;
+            if (s === 'Dispatched') return ''; // Accept/Decline shown instead
+
+            let nextStatus = '', nextLabel = '', nextIcon = '', btnClass = '';
+            if (s === 'En Route') { nextStatus = 'Arrived'; nextLabel = 'Arrived on Scene'; nextIcon = 'fa-location-dot'; btnClass = 'primary'; }
+            else if (s === 'Arrived') { nextStatus = 'Patient Loaded'; nextLabel = 'Patient Loaded'; nextIcon = 'fa-bed-pulse'; btnClass = 'primary'; }
+            else if (s === 'Patient Loaded') { nextStatus = 'Complete'; nextLabel = 'Mark Complete'; nextIcon = 'fa-flag-checkered'; btnClass = 'complete'; }
+
+            if (!nextStatus) return '';
+
+            return `<div class="status-actions">
+        <button class="sa-btn ${btnClass}" onclick="updateStatus(${d.id}, '${nextStatus}', this)">
+            <i class="fas ${nextIcon}"></i> ${nextLabel}
+        </button>
+    </div>`;
+        }
+
+        // Mini maps
+        function cleanupMaps() {
+            // Properly remove old Leaflet instances before rebuilding DOM
+            Object.keys(miniMaps).forEach(id => {
+                try { miniMaps[id].remove(); } catch (e) { }
+            });
+            miniMaps = {};
+        }
+
+        function initMap(id, aLat, aLng, hLat, hLng) {
+            if (miniMaps[id]) return;
+            const el = document.getElementById(id);
+            if (!el) return;
+            try {
+                const m = L.map(id, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false });
+                L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 18 }).addTo(m);
+                const aIcon = L.divIcon({ html: '<div style="background:#ef4444;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px rgba(239,68,68,0.6)"></div>', iconSize: [12, 12], className: '' });
+                const hIcon = L.divIcon({ html: '<div style="background:#3b82f6;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px rgba(59,130,246,0.6)"></div>', iconSize: [12, 12], className: '' });
+                L.marker([aLat, aLng], { icon: aIcon }).addTo(m);
+                if (hLat && hLng) {
+                    L.marker([hLat, hLng], { icon: hIcon }).addTo(m);
+                    L.polyline([[hLat, hLng], [aLat, aLng]], { color: '#3b82f6', weight: 3, dashArray: '8,8' }).addTo(m);
+                    m.fitBounds([[aLat, aLng], [hLat, hLng]], { padding: [30, 30] });
+                } else {
+                    m.setView([aLat, aLng], 15);
+                }
+                miniMaps[id] = m;
+            } catch (e) { console.warn('Map init error:', e); }
+        }
+
+        // Quick Message
+        function sendQM(btn, id, msg) {
+            btn.classList.add('sent');
+            btn.innerHTML = '<i class="fas fa-check"></i> Sent';
+            speak(msg);
+        }
+
+        // === OPTIMISTIC UI UPDATE (no DOM rebuild, no map destruction) ===
+        function updateCardInPlace(card, newStatus) {
+            // Update severity badge
+            const sevTag = card.querySelector('.sev-tag');
+            if (sevTag) {
+                const isPending = newStatus === 'Dispatched';
+                const isEnRoute = newStatus === 'En Route';
+                const isArrived = newStatus === 'Arrived';
+                const isLoaded = newStatus === 'Patient Loaded';
+                const sevClass = isPending ? 'crit' : (isArrived || isLoaded ? 'scene' : 'route');
+                const sevLabel = isPending ? 'CRITICAL' : newStatus.toUpperCase();
+                const sevIcon = isPending ? 'fa-circle-exclamation' : (isEnRoute ? 'fa-truck-fast' : 'fa-location-dot');
+                sevTag.className = `sev-tag ${sevClass}`;
+                sevTag.innerHTML = `<i class="fas ${sevIcon}"></i> ${sevLabel}`;
+            }
+
+            // Update card border
+            card.className = 'd-card';
+            if (newStatus === 'Dispatched') card.classList.add('prio-crit');
+            else if (newStatus === 'Arrived' || newStatus === 'Patient Loaded') card.classList.add('prio-scene');
+            else card.classList.add('prio-active');
+
+            // Update timeline
+            const timeline = card.querySelector('.timeline');
+            if (timeline) timeline.innerHTML = buildTimeline(newStatus);
+
+            // Update status action buttons
+            const oldSA = card.querySelector('.status-actions');
+            if (oldSA) oldSA.remove();
+
+            // Build new status actions
+            const dId = card.dataset.dispatchId;
+            let nextStatus = '', nextLabel = '', nextIcon = '', btnClass = '';
+            if (newStatus === 'En Route') { nextStatus = 'Arrived'; nextLabel = 'Arrived on Scene'; nextIcon = 'fa-location-dot'; btnClass = 'primary'; }
+            else if (newStatus === 'Arrived') { nextStatus = 'Patient Loaded'; nextLabel = 'Patient Loaded'; nextIcon = 'fa-bed-pulse'; btnClass = 'primary'; }
+            else if (newStatus === 'Patient Loaded') { nextStatus = 'Complete'; nextLabel = 'Mark Complete'; nextIcon = 'fa-flag-checkered'; btnClass = 'complete'; }
+
+            if (nextStatus) {
+                const saDiv = document.createElement('div');
+                saDiv.className = 'status-actions';
+                saDiv.innerHTML = `<button class="sa-btn ${btnClass}" onclick="updateStatus(${dId}, '${nextStatus}', this)"><i class="fas ${nextIcon}"></i> ${nextLabel}</button>`;
+                const actionsDiv = card.querySelector('.d-actions');
+                if (actionsDiv) actionsDiv.parentNode.insertBefore(saDiv, actionsDiv);
+            }
+
+            // Update action buttons (replace Accept/Decline with Responding)
+            const actionsDiv = card.querySelector('.d-actions');
+            if (actionsDiv && newStatus !== 'Dispatched') {
+                const declineBtn = actionsDiv.querySelector('.a-decline');
+                const acceptBtn = actionsDiv.querySelector('.a-accept');
+                if (declineBtn) declineBtn.remove();
+                if (acceptBtn) {
+                    acceptBtn.className = 'act-btn a-disabled';
+                    acceptBtn.disabled = true;
+                    acceptBtn.innerHTML = '<i class="fas fa-check"></i> Responding';
+                    acceptBtn.onclick = null;
+                }
+            }
+
+            // Show quick response section if not already visible
+            if (newStatus !== 'Dispatched' && !card.querySelector('.qm-section')) {
+                const qmHtml = `<div class="qm-section">
+                    <div class="qm-label"><i class="fas fa-message" style="margin-right:4px;"></i> Quick Response</div>
+                    <div class="qm-row">
+                        <button class="qm-btn" onclick="sendQM(this,${dId},'Traffic congestion en route')"><i class="fas fa-traffic-light"></i> Traffic Delay</button>
+                        <button class="qm-btn" onclick="sendQM(this,${dId},'Need backup at location')"><i class="fas fa-people-group"></i> Need Backup</button>
+                        <button class="qm-btn" onclick="sendQM(this,${dId},'Patient critical condition')"><i class="fas fa-heart-pulse"></i> Patient Critical</button>
+                        <button class="qm-btn" onclick="sendQM(this,${dId},'Scene secured')"><i class="fas fa-shield"></i> Scene Secure</button>
+                    </div>
+                </div>`;
+                const dActions = card.querySelector('.d-actions');
+                if (dActions) dActions.insertAdjacentHTML('beforebegin', qmHtml);
+            }
+        }
+
+        // Status Update — instant optimistic UI, background server sync
+        function updateStatus(id, status, btn) {
+            // Instant UI feedback
+            const card = btn.closest('.d-card');
+            btn.innerHTML = '<i class="fas fa-check"></i> Updated';
+            btn.style.pointerEvents = 'none';
+
+            // Optimistically update the card immediately (no DOM rebuild, maps stay alive)
+            updateCardInPlace(card, status);
+
+            // If status is Complete, fade out after a moment
+            if (status === 'Complete') {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        card.remove();
+                        if (!document.querySelector('.d-card')) {
+                            document.getElementById('empty-state').style.display = 'block';
+                        }
+                    }, 400);
+                }, 800);
+            }
+
+            speak(status === 'Complete' ? 'Incident marked complete.' : `Status updated to ${status}.`);
+
+            // Background server sync (fire-and-forget)
+            fetch(`/api/dispatch/${id}/status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            }).then(r => r.json()).then(() => {
+                lastDataHash = ''; // Let next poll pick up verified data
+            }).catch(() => { });
+        }
+
+        // Accept — instant optimistic UI
+        function acceptDispatch(id, btn) {
+            const card = btn.closest('.d-card');
+            speak("Dispatch accepted. Proceed to incident location.");
+            updateCardInPlace(card, 'En Route');
+
+            // Background server sync
+            fetch(`/api/dispatch/${id}/accept`, { method: 'POST' })
+                .then(r => r.json())
+                .then(() => { lastDataHash = ''; })
+                .catch(() => { });
+        }
+        function declineDispatch(id, btn) {
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.style.pointerEvents = 'none';
+            fetch(`/api/dispatch/${id}/decline`, { method: 'POST' })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        const card = btn.closest('.d-card');
+                        card.style.opacity = '0'; card.style.transform = 'translateX(100%)';
+                        setTimeout(() => { card.remove(); if (!document.querySelector('.d-card')) document.getElementById('empty-state').style.display = 'block'; }, 400);
+                        speak("Dispatch declined.");
+                        lastDataHash = '';
+                    }
+                })
+                .catch(e => { btn.style.pointerEvents = 'auto'; });
+        }
+
+        // Poll
+        function pollDispatches() {
+            fetch('/api/dispatch/active?t=' + Date.now())
+                .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+                .then(data => {
+                    // Connection is good - reset fail counter
+                    failCount = 0;
+                    document.getElementById('conn-badge').className = 'live-badge on';
+                    document.getElementById('conn-text').textContent = 'LIVE';
+
+                    const cont = document.getElementById('dispatch-container');
+                    const empty = document.getElementById('empty-state');
+                    const strip = document.getElementById('alert-strip');
+
+                    const pending = data.dispatches.filter(d => d.status === 'Dispatched').length;
+                    const enroute = data.dispatches.filter(d => ['En Route', 'Arrived', 'Patient Loaded'].includes(d.status)).length;
+                    document.getElementById('s-pending').textContent = pending;
+                    document.getElementById('s-enroute').textContent = enroute;
+                    document.getElementById('s-total').textContent = data.dispatches.length;
+
+                    if (data.dispatches.length === 0) {
+                        empty.style.display = 'block';
+                        cont.querySelectorAll('.d-card').forEach(c => c.remove());
+                        cleanupMaps();
+                        lastDataHash = 'empty';
+                        return;
+                    }
+                    empty.style.display = 'none';
+
+                    let hasNew = false;
+                    data.dispatches.forEach(d => { if (!knownIds.has(d.id)) { hasNew = true; knownIds.add(d.id); } });
+                    if (hasNew && !firstLoad) {
+                        strip.classList.add('show');
+                        setTimeout(() => strip.classList.remove('show'), 4000);
+                        playAlert();
+                        speak("Attention. New emergency dispatch received. Respond immediately.");
+                    }
+                    firstLoad = false;
+
+                    // Build a hash of the current data to skip unnecessary rebuilds
+                    const newHash = JSON.stringify(data.dispatches.map(d => d.id + ':' + d.status));
+                    if (newHash === lastDataHash && !hasNew) {
+                        return; // Nothing changed, skip DOM rebuild
+                    }
+                    lastDataHash = newHash;
+
+                    // Clean up old maps before rebuilding
+                    cleanupMaps();
+
+                    let html = '';
+                    data.dispatches.forEach(d => {
+                        const isPending = d.status === 'Dispatched';
+                        const isEnRoute = d.status === 'En Route';
+                        const isArrived = d.status === 'Arrived';
+                        const isLoaded = d.status === 'Patient Loaded';
+                        const prioClass = isPending ? 'prio-crit' : (isArrived || isLoaded ? 'prio-scene' : 'prio-active');
+                        const sevClass = isPending ? 'crit' : (isArrived || isLoaded ? 'scene' : 'route');
+                        const sevLabel = isPending ? 'CRITICAL' : d.status.toUpperCase();
+                        const sevIcon = isPending ? 'fa-circle-exclamation' : (isEnRoute ? 'fa-truck-fast' : 'fa-location-dot');
+                        const distStr = d.distance_km ? d.distance_km.toFixed(1) + ' km' : 'N/A';
+                        const etaStr = eta(d.distance_km);
+                        const incident = classifyIncident(d.description);
+                        const mapId = `map-${d.id}`;
+                        const mapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${d.accident_lat},${d.accident_lng}&travelmode=driving`;
+
+                        html += `
+            <div class="d-card ${prioClass}" data-dispatch-id="${d.id}">
+                <div class="d-head">
+                    <div class="sev-tag ${sevClass}">
+                        <i class="fas ${sevIcon} ${isPending ? 'pulse' : ''}"></i> ${sevLabel}
+                    </div>
+                    <div class="d-head-time">
+                        <i class="fas fa-clock"></i> ${d.timestamp}
+                        <span class="elapsed-chip" data-ts="${d.timestamp}">${elapsed(d.timestamp)}</span>
+                    </div>
+                </div>
+                <div class="d-body">
+                    <div class="incident-type"><i class="fas ${incident.icon}"></i> ${incident.label}</div>
+
+                    <div class="loc-block">
+                        <div class="loc-label"><i class="fas fa-location-crosshairs"></i> INCIDENT LOCATION</div>
+                        <div class="loc-addr">${d.location || (d.accident_lat + ', ' + d.accident_lng)}</div>
+                        <div class="loc-desc">${d.description || 'Emergency assistance required'}</div>
+                    </div>
+
+                    ${d.accident_lat ? `
+                    <div class="map-wrap" id="${mapId}">
+                        <div class="map-overlay"><div class="dot-red"></div> Accident &nbsp;<div class="dot-blue"></div> Hospital</div>
+                    </div>` : ''}
+
+                    <div class="meta-grid">
+                        <div class="meta-cell"><div class="ml">Distance</div><div class="mv c-red">${distStr}</div></div>
+                        <div class="meta-cell"><div class="ml">Est. ETA</div><div class="mv c-orange">${etaStr}</div></div>
+                        <div class="meta-cell"><div class="ml">Hospital</div><div class="mv c-blue" style="font-size:0.6rem;line-height:1.2">${d.hospital_name}</div></div>
+                        <div class="meta-cell"><div class="ml">Incident</div><div class="mv c-green">#${d.id}</div></div>
+                    </div>
+
+                    <div class="timeline">${buildTimeline(d.status)}</div>
+
+                    ${buildStatusActions(d)}
+
+                    ${!isPending ? `
+                    <div class="qm-section">
+                        <div class="qm-label"><i class="fas fa-message" style="margin-right:4px;"></i> Quick Response</div>
+                        <div class="qm-row">
+                            <button class="qm-btn" onclick="sendQM(this,${d.id},'Traffic congestion en route')"><i class="fas fa-traffic-light"></i> Traffic Delay</button>
+                            <button class="qm-btn" onclick="sendQM(this,${d.id},'Need backup at location')"><i class="fas fa-people-group"></i> Need Backup</button>
+                            <button class="qm-btn" onclick="sendQM(this,${d.id},'Patient critical condition')"><i class="fas fa-heart-pulse"></i> Patient Critical</button>
+                            <button class="qm-btn" onclick="sendQM(this,${d.id},'Scene secured')"><i class="fas fa-shield"></i> Scene Secure</button>
+                        </div>
+                    </div>` : ''}
+
+                    <div class="d-actions">
+                        ${isPending ? `
+                            <button class="act-btn a-decline" onclick="declineDispatch(${d.id},this)"><i class="fas fa-xmark"></i></button>
+                            <button class="act-btn a-accept" onclick="acceptDispatch(${d.id},this)"><i class="fas fa-check-circle"></i> Accept & Respond</button>
+                        ` : `
+                            <button class="act-btn a-disabled" disabled><i class="fas fa-check"></i> Responding</button>
+                        `}
+                        <a href="${mapsUrl}" target="_blank" class="act-btn a-nav"><i class="fas fa-diamond-turn-right"></i> Navigate</a>
+                    </div>
+                </div>
+            </div>`;
+                    });
+
+                    cont.innerHTML = html;
+                    setTimeout(() => {
+                        data.dispatches.forEach(d => {
+                            if (d.accident_lat) initMap(`map-${d.id}`, d.accident_lat, d.accident_lng, d.hospital_lat, d.hospital_lng);
+                        });
+                    }, 150);
+                })
+                .catch(e => {
+                    failCount++;
+                    // Only show OFFLINE after 3 consecutive failures (tolerance for server restarts)
+                    if (failCount >= 3) {
+                        document.getElementById('conn-badge').className = 'live-badge off';
+                        document.getElementById('conn-text').textContent = 'OFFLINE';
+                    }
+                });
+        }
+
+        // Elapsed timer updater
+        setInterval(() => {
+            document.querySelectorAll('.elapsed-chip[data-ts]').forEach(el => {
+                el.textContent = elapsed(el.dataset.ts);
+            });
+        }, 1000);
+
+        pollDispatches();
+        setInterval(pollDispatches, 3000);
+    </script>
+</body>
+
+</html>

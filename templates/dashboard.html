@@ -346,6 +346,11 @@
                 el.style.pointerEvents = manualMode ? 'all' : 'none';
             });
             logEvent('System', `Manual Override ${manualMode ? 'ENABLED' : 'DISABLED'}`);
+
+            try {
+                const msg = new SpeechSynthesisUtterance(`Manual Override ${manualMode ? 'Activated' : 'Deactivated'}`);
+                window.speechSynthesis.speak(msg);
+            } catch (e) { }
         });
 
         function forceSignal(laneId) {
@@ -405,6 +410,11 @@
                         // Check if we logged this recently? (Mock logic to avoid spam)
                         if (!window.lastAmbuState) {
                             logEvent('Emergency', 'Ambulance detected on approaching lane!');
+
+                            try {
+                                const msg = new SpeechSynthesisUtterance("Emergency vehicle detected. Prioritizing traffic signal.");
+                                window.speechSynthesis.speak(msg);
+                            } catch (e) { }
                         }
                     } else {
                         ambuInd.style.opacity = '0.5';
@@ -500,14 +510,17 @@
                         const color = r.status === 'Resolved' ? 'green' : (r.status === 'Verified' ? 'orange' : 'red');
 
                         html += `
-                        <div class="log-item" style="border-left: 3px solid ${color}; background: rgba(255,255,255,0.05);">
+                        <div class="log-item" style="border-left: 3px solid ${color}; background: rgba(255,255,255,0.05); cursor: pointer; transition: 0.2s;" onclick="focusAccident(${r.latitude || 'null'}, ${r.longitude || 'null'}, ${r.id})" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
                             <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
                                 <span style="color:var(--text); font-weight:bold;">${r.location}</span>
                                 <span class="time">${r.timestamp}</span>
                             </div>
                             <span class="msg" style="color:#ccc;">${r.description || 'No details'}</span>
-                            <div style="font-size:0.75rem; text-align:right; margin-top:4px; color:${color}">
-                                <i class="fas fa-${icon}"></i> ${r.status}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                                <div style="font-size:0.75rem; color:${color}">
+                                    <i class="fas fa-${icon}"></i> ${r.status}
+                                </div>
+                                ${r.status !== 'Resolved' ? `<button onclick="alertAmbulance(event, ${r.id}, ${r.latitude || 'null'}, ${r.longitude || 'null'})" style="background: var(--danger); color: white; border: none; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; gap: 4px; z-index: 10;"><i class="fas fa-truck-medical"></i> Alert Ambulance</button>` : ''}
                             </div>
                         </div>`;
 
@@ -528,8 +541,177 @@
                 .catch(e => console.error("Report fetch error:", e));
         }
 
+        function focusAccident(lat, lng, id) {
+            if (lat !== null && lng !== null) {
+                map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 });
+
+                // If a map marker exists, simulate opening its popup after the animation
+                if (markers[id]) {
+                    setTimeout(() => {
+                        markers[id].openPopup();
+                    }, 1500);
+                }
+            } else {
+                logEvent('System', "No geographic coordinates available for this location.");
+            }
+        }
+
+        function alertAmbulance(event, id, lat, lng) {
+            event.stopPropagation();
+
+            const btn = event.currentTarget;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Locating...';
+            btn.style.pointerEvents = 'none';
+
+            if (lat === null || lat === undefined || lng === null || lng === undefined) {
+                btn.innerHTML = '<i class="fas fa-times"></i> No GPS Data';
+                return;
+            }
+
+            // Real-time API query using OpenStreetMap Overpass (Free, No Auth required)
+            // Finds ALL real hospitals within a 10km radius, then picks the closest one
+            const query = `
+                [out:json];
+                (
+                  node["amenity"="hospital"](around:10000,${lat},${lng});
+                  way["amenity"="hospital"](around:10000,${lat},${lng});
+                );
+                out center;
+            `;
+
+            fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    let facilityName = "Nearest Response Center";
+                    let fLat = null;
+                    let fLng = null;
+
+                    if (data.elements && data.elements.length > 0) {
+                        // Haversine distance calculator (in meters)
+                        function haversine(lat1, lon1, lat2, lon2) {
+                            const R = 6371000;
+                            const dLat = (lat2 - lat1) * Math.PI / 180;
+                            const dLon = (lon2 - lon1) * Math.PI / 180;
+                            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        }
+
+                        // Extract coordinates for each hospital and calculate distance
+                        const hospitals = data.elements.map(el => {
+                            const hLat = el.lat || (el.center ? el.center.lat : null);
+                            const hLng = el.lon || (el.center ? el.center.lon : null);
+                            const name = (el.tags && el.tags.name) ? el.tags.name : null;
+                            if (hLat === null || hLng === null || !name) return null;
+                            return {
+                                name: name,
+                                lat: hLat,
+                                lng: hLng,
+                                dist: haversine(lat, lng, hLat, hLng)
+                            };
+                        }).filter(h => h !== null);
+
+                        // Sort by distance ascending and pick the closest
+                        hospitals.sort((a, b) => a.dist - b.dist);
+
+                        if (hospitals.length > 0) {
+                            const closest = hospitals[0];
+                            facilityName = closest.name;
+                            fLat = closest.lat;
+                            fLng = closest.lng;
+                            console.log(`Found ${hospitals.length} hospitals. Closest: ${facilityName} (${(closest.dist / 1000).toFixed(1)} km)`);
+                        }
+                    }
+
+                    btn.innerHTML = '<i class="fas fa-check"></i> Dispatched';
+                    btn.style.background = 'var(--success)';
+
+                    // Save dispatch to backend database so the Ambulance Driver Portal receives it
+                    fetch('/api/dispatch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            report_id: id,
+                            hospital_name: facilityName,
+                            hospital_lat: fLat,
+                            hospital_lng: fLng,
+                            accident_lat: lat,
+                            accident_lng: lng,
+                            distance_km: fLat !== null ? (map.distance([fLat, fLng], [lat, lng]) / 1000) : null
+                        })
+                    });
+
+                    // Log to the internal console
+                    logEvent('Emergency', `Dispatched unit from ${facilityName} to Incident #${id}`);
+
+                    if (fLat !== null && fLng !== null) {
+                        // Plot the hospital on the map
+                        const hospitalMarker = L.circleMarker([fLat, fLng], {
+                            radius: 10,
+                            fillColor: "#3b82f6", // Medical Blue
+                            color: "#fff",
+                            weight: 2,
+                            opacity: 1,
+                            fillOpacity: 0.9
+                        }).addTo(map);
+
+                        hospitalMarker.bindPopup(`<b>${facilityName}</b><br>Responding to Incident #${id}`).openPopup();
+
+                        // Draw real-time dispatch vector (line) back to accident point
+                        const routeLine = L.polyline([[fLat, fLng], [lat, lng]], {
+                            color: '#3b82f6',
+                            weight: 4,
+                            dashArray: '10, 10',
+                            className: 'route-animation'
+                        }).addTo(map);
+
+                        // Calculate real geographical distance using map engine
+                        const distanceStr = (map.distance([fLat, fLng], [lat, lng]) / 1000).toFixed(1);
+
+                        // Focus camera to frame both the hospital and the accident scene
+                        map.fitBounds(routeLine.getBounds(), { padding: [50, 50] });
+
+                        // Voice synthesis notification specifically for the guide
+                        try {
+                            const speechMsg = `Emergency recorded. Locating nearest medical facility. Alerting ${facilityName}, located ${distanceStr} kilometers away. Ambulance dispatched.`;
+                            const msg = new SpeechSynthesisUtterance(speechMsg);
+                            window.speechSynthesis.speak(msg);
+                        } catch (e) { }
+                    } else {
+                        // Fallback if we are in the middle of nowhere on OSM
+                        try {
+                            const msg = new SpeechSynthesisUtterance("Nearest available response center has been alerted and routed to the accident location.");
+                            window.speechSynthesis.speak(msg);
+                        } catch (e) { }
+                    }
+                })
+                .catch(err => {
+                    btn.innerHTML = '<i class="fas fa-check"></i> Dispatched';
+                    btn.style.background = 'var(--success)';
+                    logEvent('Emergency', `Offline Fallback: Alerted nearest unit for #${id}`);
+                    try {
+                        const msg = new SpeechSynthesisUtterance("Nearest available ambulance has been alerted.");
+                        window.speechSynthesis.speak(msg);
+                    } catch (e) { }
+                });
+        }
+
         // --- Map Logic ---
         var map = L.map('admin-map').setView([12.9716, 77.5946], 12);
+
+        // Map Animations CSS
+        const mapStyle = document.createElement('style');
+        mapStyle.innerHTML = `
+            .route-animation {
+                stroke-dashoffset: 100;
+                animation: dash 2s linear infinite;
+            }
+            @keyframes dash {
+                to { stroke-dashoffset: 0; }
+            }
+        `;
+        document.head.appendChild(mapStyle);
 
         // Define base layers
         var standardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -537,10 +719,10 @@
             maxZoom: 19
         });
 
-        // Premium Esri World Imagery Satellite Map
-        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-            attribution: 'Tiles &copy; Esri',
-            maxZoom: 19
+        // Premium Satellite Map
+        var satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            attribution: 'Map &copy; Google',
+            maxZoom: 20
         });
 
         // Google Live Traffic Overlay Layer
