@@ -48,12 +48,13 @@
 <body>
     <div class="login-wrapper">
         <div class="login-card glass-panel">
-            <div class="logo-large">
+            <a href="{{ url_for('index') }}" class="logo-large"
+                style="display: block; text-decoration: none; cursor: pointer;">
                 <i class="fas fa-camera-retro"></i>
                 <h1 style="letter-spacing: -0.5px;">Traffic Vision AI</h1>
                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 500;">
                     AUTONOMOUS MANAGEMENT</p>
-            </div>
+            </a>
 
             {% with messages = get_flashed_messages() %}
             {% if messages %}
