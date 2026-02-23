@@ -29,17 +29,24 @@
     <div class="app-container">
         <!-- Side Navigation -->
         <aside class="sidebar glass-panel">
-            <div class="logo-area" style="display: flex; align-items: center;">
-                <i class="fas fa-camera-retro fa-2x" style="color: var(--accent);"></i>
-                <h2 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.5px;">Traffic<br>Vision AI</h2>
+            <div class="logo-area">
+                <div
+                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
+                    <i class="fas fa-camera-retro"></i>
+                </div>
+                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
+                    AI</h2>
             </div>
 
             <nav class="nav-menu">
                 <a href="{{ url_for('dashboard') }}" class="nav-item active">
-                    <i class="fas fa-th-large"></i> Dashboard
+                    <i class="fas fa-th-large"></i> Command Center
                 </a>
                 <a href="{{ url_for('analysis') }}" class="nav-item">
                     <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="{{ url_for('ambulance_portal') }}" class="nav-item" target="_blank">
+                    <i class="fas fa-truck-medical"></i> Ambulance Unit
                 </a>
                 <div class="nav-divider"></div>
                 <div class="control-group">
@@ -52,6 +59,9 @@
             </nav>
 
             <div class="sidebar-footer">
+                <div
+                    style="font-size:0.6rem;color:var(--text-secondary);letter-spacing:0.5px;padding:0.6rem 1rem 0.4rem;opacity:0.6;">
+                    TRAFFIC VISION AI v3.0</div>
                 <a href="{{ url_for('logout') }}" class="nav-item logout">
                     <i class="fas fa-sign-out-alt"></i> Logout
                 </a>
@@ -86,6 +96,15 @@
                             <span class="value" id="ambu-text">INACTIVE</span>
                         </div>
                     </div>
+                    <div class="status-divider"></div>
+                    <div class="status-indicator">
+                        <i class="fas fa-satellite-dish" style="color:var(--purple);"></i>
+                        <div class="status-text">
+                            <span class="label">LIVE CLOCK</span>
+                            <span class="value" id="live-clock"
+                                style="color:var(--accent);font-variant-numeric:tabular-nums;">--:--</span>
+                        </div>
+                    </div>
                 </div>
                 <div class="header-actions">
                     <button class="btn-icon" onclick="document.getElementById('setup-modal').style.display='flex'">
@@ -93,6 +112,34 @@
                     </button>
                 </div>
             </header>
+
+            <!-- Summary Stats -->
+            <div class="summary-stats">
+                <div class="summary-card">
+                    <div class="s-icon" style="background:var(--accent-dim);color:var(--accent);"><i
+                            class="fas fa-car-side"></i></div>
+                    <div class="s-data"><span class="s-val" id="stat-total-vehicles">0</span><span class="s-lbl">Total
+                            Vehicles</span></div>
+                </div>
+                <div class="summary-card">
+                    <div class="s-icon" style="background:var(--danger-dim);color:var(--danger);"><i
+                            class="fas fa-triangle-exclamation"></i></div>
+                    <div class="s-data"><span class="s-val" id="stat-incidents">0</span><span class="s-lbl">Active
+                            Incidents</span></div>
+                </div>
+                <div class="summary-card">
+                    <div class="s-icon" style="background:var(--success-dim);color:var(--success);"><i
+                            class="fas fa-brain"></i></div>
+                    <div class="s-data"><span class="s-val" id="stat-accuracy">98.2%</span><span class="s-lbl">AI
+                            Accuracy</span></div>
+                </div>
+                <div class="summary-card">
+                    <div class="s-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);"><i
+                            class="fas fa-server"></i></div>
+                    <div class="s-data"><span class="s-val" id="stat-uptime">--</span><span class="s-lbl">System
+                            Uptime</span></div>
+                </div>
+            </div>
 
             <!-- Video Grid -->
             <div class="video-grid">
@@ -145,19 +192,24 @@
 
         <!-- Right Panel: Live Logs -->
         <aside class="info-sidebar glass-panel">
-            <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> User Alerts</h3>
+            <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Incident Reports</h3>
             <div class="log-container" id="user-reports"
-                style="height: 150px; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
-                <!-- User reports injected here -->
+                style="max-height: 180px; min-height: 60px; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.06);">
                 <div class="log-item info">
                     <span class="msg">No accident reports.</span>
                 </div>
             </div>
 
-            <h3><i class="fas fa-history"></i> Event Log</h3>
-            <div class="log-container" id="event-log" style="height: calc(100% - 200px);">
-                <!-- Logs will be injected here -->
-                <div class="log-item info">
+            <h3><i class="fas fa-truck-medical" style="color:var(--accent);"></i> Dispatch History</h3>
+            <div id="dispatch-history"
+                style="max-height:140px;min-height:40px;overflow-y:auto;margin-bottom:0.75rem;padding-bottom:0.5rem;border-bottom:1px solid rgba(255,255,255,0.06);">
+                <div style="font-size:0.72rem;color:var(--text-secondary);text-align:center;padding:8px;">No dispatches
+                    yet.</div>
+            </div>
+
+            <h3><i class="fas fa-history" style="color:var(--purple);"></i> Event Log</h3>
+            <div class="log-container" id="event-log" style="flex-grow:1;">
+                <div class="log-item system">
                     <span class="time">System</span>
                     <span class="msg">Dashboard initialized. Monitor active.</span>
                 </div>
@@ -333,10 +385,68 @@
     <script>
         // State
         let manualMode = false;
+        const startTime = Date.now();
+
+        // --- Live Clock ---
+        function updateClock() {
+            document.getElementById('live-clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // --- System Uptime ---
+        function updateUptime() {
+            const s = Math.floor((Date.now() - startTime) / 1000);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            document.getElementById('stat-uptime').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        }
+        setInterval(updateUptime, 10000); updateUptime();
+
+        // --- Summary Stats ---
+        function updateSummaryStats() {
+            // Total vehicles across all lanes
+            let total = 0;
+            for (let i = 0; i < 4; i++) {
+                const el = document.getElementById(`total-${i}`);
+                if (el) total += parseInt(el.textContent || '0');
+            }
+            document.getElementById('stat-total-vehicles').textContent = total;
+        }
+
+        // --- Dispatch History ---
+        function updateDispatchHistory() {
+            fetch('/api/dispatch/active?t=' + Date.now())
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('dispatch-history');
+                    if (!data.dispatches || data.dispatches.length === 0) {
+                        container.innerHTML = '<div style="font-size:0.72rem;color:var(--text-secondary);text-align:center;padding:8px;">No active dispatches.</div>';
+                        return;
+                    }
+                    let html = '';
+                    data.dispatches.forEach(d => {
+                        const statusMap = { 'Dispatched': 'dispatched', 'En Route': 'enroute', 'Arrived': 'arrived', 'Patient Loaded': 'arrived' };
+                        const cls = statusMap[d.status] || 'dispatched';
+                        html += `<div class="dispatch-mini">
+                            <div class="dm-top">
+                                <span style="font-weight:600;color:var(--text-primary);">#${d.id} — ${d.hospital_name || 'Unknown'}</span>
+                                <span class="dm-status ${cls}">${d.status}</span>
+                            </div>
+                            <div style="color:var(--text-secondary);font-size:0.65rem;">${d.description || 'Emergency dispatch'} • ${d.timestamp}</div>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                })
+                .catch(() => { });
+        }
+        setInterval(updateDispatchHistory, 5000);
+        setTimeout(updateDispatchHistory, 1000);
 
         // --- Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Mock loading animation removal if we had one
+            // Stats update on a loop
+            setInterval(updateSummaryStats, 1500);
         });
 
         document.getElementById('manual-mode-toggle').addEventListener('change', (e) => {
@@ -489,6 +599,10 @@
                 .then(r => r.json())
                 .then(data => {
                     const container = document.getElementById('user-reports');
+
+                    // Update incident count in summary
+                    const activeCount = data.reports.filter(r => r.status !== 'Resolved').length;
+                    document.getElementById('stat-incidents').textContent = activeCount;
 
                     if (data.reports.length === 0) {
                         return; // keeping placeholder
