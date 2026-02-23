@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Nexus | Secure Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .login-wrapper {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .logo-large {
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .logo-large i {
+            font-size: 3rem;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 0 15px var(--accent-dim));
+        }
+
+        .logo-large h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-wrapper">
+        <div class="login-card glass-panel">
+            <div class="logo-large">
+                <i class="fas fa-traffic-light"></i>
+                <h1>TRAFFIC<span style="color: var(--accent);">NEXUS</span></h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 300;">
+                    INTELLIGENT CONTROL SYSTEM</p>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <div
+                style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 0.75rem; border-radius: 8px; margin-bottom: 1.5rem; font-size: 0.9rem; border: 1px solid rgba(239,68,68,0.3);">
+                <i class="fas fa-exclamation-circle"></i> {{ messages[0] }}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="input-group">
+                    <label>ACCESS ID</label>
+                    <input type="text" name="username" required placeholder="admin" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <label>PASSCODE</label>
+                    <input type="password" name="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-primary" style="margin-top: 1rem; width: 100%;">
+                    <i class="fas fa-fingerprint"></i> AUTHENTICATE
+                </button>
+            </form>
+
+            <div style="margin-top: 1.5rem; text-align: center;">
+                <a href="{{ url_for('user.register') }}"
+                    style="color: var(--accent); text-decoration: none; font-size: 0.9rem;">
+                    <i class="fas fa-user-plus"></i> New User Registration
+                </a>
+            </div>
+
+            <div style="margin-top: 2rem; font-size: 0.75rem; color: var(--text-secondary); opacity: 0.6;">
+                SYSTEM VERSION 2.0.4 | SECURE CONNECTION
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

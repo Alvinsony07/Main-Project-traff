@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Traffic Vision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .feature-card {
+            transition: transform 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+
+<body class="p-6">
+    <nav class="flex justify-between items-center mb-8 bg-slate-800 p-4 rounded-xl">
+        <div class="flex items-center gap-3">
+            <i class="fas fa-traffic-light text-blue-500 text-2xl"></i>
+            <h1 class="text-xl font-bold">Traffic Vision user</h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <span>Welcome, {{ user.username }}</span>
+            <a href="{{ url_for('logout') }}"
+                class="px-4 py-2 bg-red-500 rounded-lg hover:bg-red-600 transition">Logout</a>
+        </div>
+    </nav>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <!-- Report Accident Card -->
+        <div class="bg-slate-800 p-6 rounded-xl shadow-lg feature-card border border-slate-700">
+            <h2 class="text-2xl font-bold mb-4 text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Report
+                Accident</h2>
+            <p class="text-slate-400 mb-6">Instantly alert authorities about a traffic accident. Your location will be
+                automatically detected.</p>
+
+            <form action="{{ url_for('user.report_accident') }}" method="POST" id="accidentForm">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Location (Tap on map)</label>
+                    <div id="map" class="w-full h-48 bg-slate-900 rounded-lg mb-2 z-0"></div>
+
+                    <input type="hidden" name="latitude" id="latInput">
+                    <input type="hidden" name="longitude" id="lngInput">
+                    <div class="flex gap-2">
+                        <input type="text" name="location" id="locationInput" placeholder="Latitude, Longitude" readonly
+                            class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"
+                            required>
+                        <button type="button" onclick="getLocation()"
+                            class="bg-blue-600 px-4 rounded-lg hover:bg-blue-700" title="Use My Location">
+                            <i class="fas fa-location-arrow"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Description / Details</label>
+                    <textarea name="description" rows="3" placeholder="Describe the severity, vehicles involved, etc."
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <button type="submit"
+                    class="w-full py-3 bg-red-600 hover:bg-red-700 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                    <i class="fas fa-paper-plane"></i> Submit Alert
+                </button>
+            </form>
+        </div>
+
+        <!-- History/Status Card -->
+        <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700">
+            <h2 class="text-2xl font-bold mb-4 text-blue-400"><i class="fas fa-history mr-2"></i>My Reports</h2>
+
+            <div class="overflow-y-auto max-h-[400px] pr-2">
+                {% if reports %}
+                {% for report in reports %}
+                <div class="bg-slate-700/50 p-4 rounded-lg mb-3 border-l-4 
+                        {% if report.status == 'Resolved' %}border-green-500
+                        {% elif report.status == 'Verified' %}border-yellow-500
+                        {% else %}border-red-500{% endif %}">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-bold text-lg">{{ report.location }}</span>
+                        <span class="text-xs bg-slate-900 px-2 py-1 rounded text-slate-300">{{
+                            report.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                    </div>
+                    <p class="text-slate-300 text-sm mb-2">{{ report.description or 'No description provided.' }}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-xs font-mono uppercase tracking-sder
+                                {% if report.status == 'Resolved' %}text-green-400
+                                {% elif report.status == 'Verified' %}text-yellow-400
+                                {% else %}text-red-400{% endif %}">
+                            Status: {{ report.status }}
+                        </span>
+                    </div>
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-10 text-slate-500">
+                    <i class="fas fa-folder-open text-4xl mb-3"></i>
+                    <p>No reports submitted yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Traffic Status (Placeholder for future features) -->
+    <div class="bg-slate-800 p-6 rounded-xl shadow-lg border border-slate-700 opacity-75">
+        <h2 class="text-xl font-bold mb-4 text-slate-300"><i class="fas fa-road mr-2"></i>Live Traffic Updates (Beta)
+        </h2>
+        <div class="flex items-center justify-center h-32 text-slate-500">
+            Coming Soon: View live congestion levels in your area.
+        </div>
+    </div>
+
+    <script>
+        // Map Initialization
+        // Default to a central location (e.g., Bangalore or user's IP loc)
+        var map = L.map('map').setView([12.9716, 77.5946], 13);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        var marker;
+
+        function onMapClick(e) {
+            updateLocation(e.latlng.lat, e.latlng.lng);
+        }
+
+        map.on('click', onMapClick);
+
+        function updateLocation(lat, lng) {
+            if (marker) {
+                marker.setLatLng([lat, lng]);
+            } else {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+
+            document.getElementById('latInput').value = lat;
+            document.getElementById('lngInput').value = lng;
+            document.getElementById('locationInput').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+            // Pan to location
+            map.flyTo([lat, lng], 15);
+        }
+
+        // Auto-detect location on load or button click
+        function getLocation() {
+            const locInput = document.getElementById('locationInput');
+            locInput.placeholder = "Getting coordinates...";
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(showPosition, showError);
+            } else {
+                locInput.value = "Geolocation is not supported by this browser.";
+            }
+        }
+
+        function showPosition(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            updateLocation(lat, lng);
+        }
+
+        function showError(error) {
+            // ... existing error handling ...
+            alert("Could not get location: " + error.message);
+        }
+
+        // Try to get location automatically on load
+        // getLocation(); 
+    </script>
+</body>
+
+</html>

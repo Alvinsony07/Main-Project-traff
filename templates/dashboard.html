@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Nexus | Command Center</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> <!-- Mock FA -->
+    <!-- Using a CDN for icons for immediate visual impact (FontAwesome equivalent) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        .map-section {
+            height: 300px;
+            width: 100%;
+            border-radius: 12px;
+            z-index: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Side Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <i class="fas fa-traffic-light fa-2x" style="color: var(--accent);"></i>
+                <h2>TRAFFIC<br><span style="color: var(--accent);">NEXUS</span></h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-item active">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a>
+                <a href="{{ url_for('analysis') }}" class="nav-item">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <div class="nav-divider"></div>
+                <div class="control-group">
+                    <label class="switch-label">
+                        <i class="fas fa-hand-paper"></i> Manual Override
+                        <input type="checkbox" id="manual-mode-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Status Bar -->
+            <header class="top-bar glass-panel">
+                <div class="status-group">
+                    <div class="status-indicator">
+                        <span class="dot online"></span>
+                        <div class="status-text">
+                            <span class="label">SYSTEM STATUS</span>
+                            <span class="value">OPERATIONAL</span>
+                        </div>
+                    </div>
+                    <div class="status-divider"></div>
+                    <div class="status-indicator">
+                        <i class="fas fa-clock" style="color: var(--text-secondary);"></i>
+                        <div class="status-text">
+                            <span class="label">NEXT SWITCH</span>
+                            <span class="value" id="timer">--s</span>
+                        </div>
+                    </div>
+                    <div class="status-divider"></div>
+                    <div class="status-indicator" id="ambu-status" style="opacity: 0.5;">
+                        <i class="fas fa-ambulance" style="color: var(--danger);"></i>
+                        <div class="status-text">
+                            <span class="label">EMERGENCY MODE</span>
+                            <span class="value" id="ambu-text">INACTIVE</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-icon" onclick="document.getElementById('setup-modal').style.display='flex'">
+                        <i class="fas fa-cog"></i> Configure Sources
+                    </button>
+                </div>
+            </header>
+
+            <!-- Video Grid -->
+            <div class="video-grid">
+                {% for i in range(4) %}
+                <div class="lane-card glass-panel" id="lane-{{i}}">
+                    <div class="lane-header">
+                        <span class="lane-badge">LANE 0{{ i + 1 }}</span>
+                        <div class="signal-pill" id="signal-pill-{{i}}">
+                            <span class="signal-dot" id="signal-dot-{{i}}"></span>
+                            <span class="signal-text" id="signal-text-{{i}}">RED</span>
+                        </div>
+                    </div>
+
+                    <div class="video-wrapper">
+                        <img id="video-lane-{{i}}" src="{{ url_for('static', filename='placeholder.png') }}"
+                            data-placeholder="{{ url_for('static', filename='placeholder.png') }}"
+                            onerror="this.onerror=null; this.src=this.dataset.placeholder;">
+
+                        <div class="manual-overlay" id="manual-overlay-{{i}}">
+                            <button class="btn-force" onclick="forceSignal('{{i}}')">
+                                <i class="fas fa-power-off"></i> FORCE GREEN
+                            </button>
+                        </div>
+
+                        <!-- Scan Line Animation -->
+                        <div class="scan-line"></div>
+                    </div>
+
+                    <div class="lane-stats">
+                        <div class="stat-row">
+                            <div class="stat-item" title="Cars">
+                                <i class="fas fa-car"></i> <span id="count-car-{{i}}">0</span>
+                            </div>
+                            <div class="stat-item" title="Trucks/Buses">
+                                <i class="fas fa-truck"></i> <span id="count-truck-{{i}}">0</span>
+                            </div>
+                            <div class="stat-item" title="Motorcycles">
+                                <i class="fas fa-motorcycle"></i> <span id="count-bike-{{i}}">0</span>
+                            </div>
+                        </div>
+                        <div class="total-density">
+                            <span>TOTAL: <strong id="total-{{i}}">0</strong></span>
+                            <span class="density-tag" id="density-{{i}}">LOW</span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </main>
+
+        <!-- Right Panel: Live Logs -->
+        <aside class="info-sidebar glass-panel">
+            <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> User Alerts</h3>
+            <div class="log-container" id="user-reports"
+                style="height: 150px; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                <!-- User reports injected here -->
+                <div class="log-item info">
+                    <span class="msg">No accident reports.</span>
+                </div>
+            </div>
+
+            <h3><i class="fas fa-history"></i> Event Log</h3>
+            <div class="log-container" id="event-log" style="height: calc(100% - 200px);">
+                <!-- Logs will be injected here -->
+                <div class="log-item info">
+                    <span class="time">System</span>
+                    <span class="msg">Dashboard initialized. Monitor active.</span>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Setup Modal -->
+    <div id="setup-modal" class="modal-overlay" style="display: none;">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h3><i class="fas fa-video"></i> Video Source Configuration</h3>
+                <button onclick="document.getElementById('setup-modal').style.display='none'"
+                    class="close-btn">&times;</button>
+            </div>
+            <form action="{{ url_for('setup_demo') }}" method="post" enctype="multipart/form-data">
+                <div class="input-grid">
+                    {% for i in range(4) %}
+                    <div class="input-group">
+                        <label>Lane {{i+1}} Source</label>
+                        <input type="text" name="cam_{{i+1}}" placeholder="Camera Index (0) or URL" class="mb-2"
+                            style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #444; background: #0f172a; color: white;">
+                        <div style="text-align: center; font-size: 0.8rem; opacity: 0.7; margin: 4px 0;">OR UPLOAD FILE
+                        </div>
+                        <input type="file" name="video_{{i+1}}" accept="video/*">
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-primary">Initialize Simulation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Live Map Section (Below videos) -->
+    <div class="glass-panel" style="margin-top: 20px; padding: 20px;">
+        <h3 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <i class="fas fa-map-marked-alt" style="color: var(--primary);"></i> Live Incident Map
+            <span style="font-size: 0.8rem; opacity: 0.6; font-weight: normal;">(Real-time Updates)</span>
+        </h3>
+        <div id="admin-map" class="map-section"></div>
+    </div>
+
+    <script>
+        // State
+        let manualMode = false;
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Mock loading animation removal if we had one
+        });
+
+        document.getElementById('manual-mode-toggle').addEventListener('change', (e) => {
+            manualMode = e.target.checked;
+            document.querySelectorAll('.manual-overlay').forEach(el => {
+                el.style.opacity = manualMode ? '1' : '0';
+                el.style.pointerEvents = manualMode ? 'all' : 'none';
+            });
+            logEvent('System', `Manual Override ${manualMode ? 'ENABLED' : 'DISABLED'}`);
+        });
+
+        function forceSignal(laneId) {
+            if (!manualMode) return;
+
+            fetch('/api/override', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lane_id: laneId })
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        logEvent('Manual', `Lane ${laneId + 1} forced GREEN`);
+                    } else {
+                        logEvent('Error', 'Failed to override signal');
+                    }
+                });
+        }
+
+        // --- Logging System ---
+        function logEvent(type, message) {
+            const container = document.getElementById('event-log');
+            const item = document.createElement('div');
+            item.className = `log-item ${type.toLowerCase()}`;
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            item.innerHTML = `<span class="time">${time}</span><span class="msg">${message}</span>`;
+
+            container.insertBefore(item, container.firstChild);
+
+            // Limit log size
+            if (container.children.length > 20) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        // --- Polling Logic ---
+        function updateStatus() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    const status = data.signal_status;
+                    const lanes = data.lane_data;
+
+                    // 1. Timer
+                    document.getElementById('timer').innerText = status.remaining_time + 's';
+
+                    // 2. Ambulance Status
+                    const ambuInd = document.getElementById('ambu-status');
+                    const ambuText = document.getElementById('ambu-text');
+                    if (status.ambulance_mode) {
+                        ambuInd.style.opacity = '1';
+                        ambuInd.classList.add('pulse-danger');
+                        ambuText.innerText = 'DETECTED';
+                        ambuText.style.color = 'var(--danger)';
+
+                        // Check if we logged this recently? (Mock logic to avoid spam)
+                        if (!window.lastAmbuState) {
+                            logEvent('Emergency', 'Ambulance detected on approaching lane!');
+                        }
+                    } else {
+                        ambuInd.style.opacity = '0.5';
+                        ambuInd.classList.remove('pulse-danger');
+                        ambuText.innerText = 'INACTIVE';
+                        ambuText.style.color = 'var(--text-secondary)';
+                    }
+                    window.lastAmbuState = status.ambulance_mode;
+
+                    // 3. Lane Updates
+                    for (let i = 0; i < 4; i++) {
+                        // Signal
+                        const state = status.states[i]; // RED, GREEN, YELLOW
+                        const pill = document.getElementById(`signal-pill-${i}`);
+                        const dot = document.getElementById(`signal-dot-${i}`);
+                        const text = document.getElementById(`signal-text-${i}`);
+
+                        // Reset classes
+                        pill.className = 'signal-pill';
+                        dot.className = 'signal-dot';
+
+                        pill.classList.add(state);
+                        dot.classList.add(state);
+                        text.innerText = state;
+
+                        // Stats
+                        const d = lanes[i.toString()];
+                        if (d) {
+                            document.getElementById(`total-${i}`).innerText = d.count;
+                            document.getElementById(`density-${i}`).innerText = d.density;
+
+                            // Detailed Breakdown (Mock if empty, or real if backend sends it)
+                            const details = d.details || {};
+                            document.getElementById(`count-car-${i}`).innerText = details.car || details.Car || 0;
+                            document.getElementById(`count-truck-${i}`).innerText = (details.truck || 0) + (details.bus || 0);
+                            document.getElementById(`count-bike-${i}`).innerText = details.motorcycle || details.bike || 0;
+                        }
+                    }
+                });
+        }
+
+        function updateVideos() {
+            const t = new Date().getTime();
+            for (let i = 0; i < 4; i++) {
+                const img = document.getElementById(`video-lane-${i}`);
+                if (img) {
+                    // Preload to avoid flicker
+                    const newSrc = `/video_snapshot/${i}?t=${t}`;
+                    const loader = new Image();
+                    loader.onload = () => { img.src = newSrc; };
+                    loader.src = newSrc;
+                }
+            }
+        }
+
+        setInterval(updateStatus, 1000);
+        setInterval(updateVideos, 100); // 10 FPS
+        setInterval(updateReports, 5000); // Poll user reports every 5s
+
+        // --- User Reports ---
+        let lastReportId = 0;
+        function updateReports() {
+            fetch('/user/api/reports')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('user-reports');
+
+                    if (data.reports.length === 0) {
+                        return; // keeping placeholder
+                    }
+
+                    // clear placeholder if first real load
+                    if (container.querySelector('.info .msg')?.textContent === 'No accident reports.') {
+                        container.innerHTML = '';
+                    }
+
+                    // Simple diff check or just rebuild for simplicity in this demo
+                    // To avoid flicker, we only append *new* ones, but let's just rebuild sorted
+                    // Actually, let's just highlight new ones.
+
+                    // rebuild content
+                    let html = '';
+                    data.reports.forEach(r => {
+                        const icon = r.status === 'Resolved' ? 'check-circle' : 'exclamation-circle';
+                        const color = r.status === 'Resolved' ? 'green' : (r.status === 'Verified' ? 'orange' : 'red');
+
+                        html += `
+                        <div class="log-item" style="border-left: 3px solid ${color}; background: rgba(255,255,255,0.05);">
+                            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                                <span style="color:var(--text); font-weight:bold;">${r.location}</span>
+                                <span class="time">${r.timestamp}</span>
+                            </div>
+                            <span class="msg" style="color:#ccc;">${r.description || 'Reported Incident'}</span>
+                            <div style="font-size:0.75rem; text-align:right; margin-top:4px; color:${color}">
+                                <i class="fas fa-${icon}"></i> ${r.status}
+                            </div>
+                        </div>`;
+
+                        if (r.id > lastReportId) {
+                            lastReportId = r.id;
+                            // Trigger a toast or sound?
+                            logEvent('ALERT', `New Incident Reported at ${r.location}`);
+                            // Play sound if needed
+                        }
+                    });
+
+                    container.innerHTML = html;
+
+                    // Update Map Markers
+                    updateMapMarkers(data.reports);
+
+                })
+                .catch(e => console.error("Report fetch error:", e));
+        }
+
+        // --- Map Logic ---
+        var map = L.map('admin-map').setView([12.9716, 77.5946], 12);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        var markers = {}; // id -> marker
+
+        function updateMapMarkers(reports) {
+            reports.forEach(r => {
+                if (r.latitude && r.longitude) {
+                    if (!markers[r.id]) {
+                        // Color based on status
+                        let color = '#ef4444'; // red
+                        if (r.status === 'Verified') color = '#f59e0b'; // orange
+                        if (r.status === 'Resolved') color = '#10b981'; // green
+
+                        const marker = L.circleMarker([r.latitude, r.longitude], {
+                            radius: 8,
+                            fillColor: color,
+                            color: "#fff",
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).addTo(map);
+
+                        marker.bindPopup(`<b>${r.location}</b><br>${r.description || 'No details'}<br>Status: ${r.status}`);
+                        markers[r.id] = marker;
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>

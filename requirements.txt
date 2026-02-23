@@ -1,0 +1,7 @@
+flask
+flask-sqlalchemy
+opencv-python
+ultralytics
+werkzeug
+# chart.js is a javascript library, we use CDN for it, so it is not a pip requirement
+easyocr

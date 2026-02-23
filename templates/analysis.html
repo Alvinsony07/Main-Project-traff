@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Nexus | Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <i class="fas fa-traffic-light fa-2x" style="color: var(--accent);"></i>
+                <h2>TRAFFIC<br><span style="color: var(--accent);">NEXUS</span></h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i> Dashboard
+                </a>
+                <a href="{{ url_for('analysis') }}" class="nav-item active">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Analytics Area -->
+        <main class="main-content">
+            <header class="top-bar glass-panel">
+                <div class="status-group">
+                    <div class="status-text">
+                        <span class="label">MODULE</span>
+                        <span class="value">ANALYTICS ENGINE</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <a href="/api/export_stats" class="btn-icon"
+                        style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
+                        <i class="fas fa-file-csv"></i> Export Data
+                    </a>
+                </div>
+            </header>
+
+            <div class="charts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+
+                <!-- Chart 1: Trend -->
+                <div class="lane-card glass-panel" style="min-height: 400px; grid-column: span 2;">
+                    <div class="lane-header">
+                        <h3><i class="fas fa-wave-square"></i> Traffic Volume Trend</h3>
+                    </div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="trendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Distribution -->
+                <div class="lane-card glass-panel" style="min-height: 350px;">
+                    <div class="lane-header">
+                        <h3><i class="fas fa-chart-pie"></i> Vehicle Composition</h3>
+                    </div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="distChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Peak Hours (New) -->
+                <div class="lane-card glass-panel" style="min-height: 350px;">
+                    <div class="lane-header">
+                        <h3><i class="fas fa-clock"></i> Hourly Peak Traffic</h3>
+                    </div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="peakChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Chart 4: Lane Load (New) -->
+                <div class="lane-card glass-panel" style="min-height: 350px; grid-column: span 2;">
+                    <div class="lane-header">
+                        <h3><i class="fas fa-road"></i> Lane Load Distibution</h3>
+                    </div>
+                    <div style="flex-grow: 1; position: relative;">
+                        <canvas id="laneChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Chart Config
+        Chart.defaults.color = '#94a3b8';
+        Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.1)';
+
+        document.addEventListener('DOMContentLoaded', function () {
+            fetch('/api/stats')
+                .then(res => res.json())
+                .then(data => {
+                    const hasData = (data.trend && data.trend.length > 0);
+
+                    if (!hasData) {
+                        showNoData('trendChart', 'No Traffic Data Recorded Yet');
+                        showNoData('distChart', 'Waiting for Vehicles...');
+                        showNoData('peakChart', 'No Hourly Data');
+                        showNoData('laneChart', 'No Lane Activity');
+                        return;
+                    }
+
+                    // --- 1. TREND CHART ---
+                    const trends = data.trend || [];
+                    const timeLabels = trends.map(d => d.time);
+                    const counts = trends.map(d => d.count);
+
+                    new Chart(document.getElementById('trendChart'), {
+                        type: 'line',
+                        data: {
+                            labels: timeLabels,
+                            datasets: [{
+                                label: 'Real-time Traffic Volume',
+                                data: counts,
+                                borderColor: '#38bdf8',
+                                backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                                fill: true,
+                                tension: 0.3,
+                                pointRadius: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { grid: { display: false } }, // Hide x grid
+                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+                            }
+                        }
+                    });
+
+                    // --- 2. VEHICLE COMPOSITION ---
+                    const dist = data.distribution || {};
+                    const distLabels = Object.keys(dist);
+                    const distValues = Object.values(dist);
+
+                    if (distLabels.length === 0) {
+                        showNoData('distChart', 'No Vehicles Detected');
+                    } else {
+                        new Chart(document.getElementById('distChart'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: distLabels,
+                                datasets: [{
+                                    data: distValues,
+                                    backgroundColor: ['#38bdf8', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '75%',
+                                plugins: {
+                                    legend: { position: 'right', labels: { boxWidth: 12, padding: 15 } }
+                                }
+                            }
+                        });
+                    }
+
+                    // --- 3. PEAK HOURS CHART (New) ---
+                    const peakData = data.peak_hours || {};
+                    const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+                    const volumes = hours.map((_, i) => peakData[i] || 0);
+                    const totalPeakVolume = volumes.reduce((sum, val) => sum + val, 0);
+
+                    if (totalPeakVolume === 0) {
+                        showNoData('peakChart', 'No Hourly Data');
+                    } else {
+                        new Chart(document.getElementById('peakChart'), {
+                            type: 'bar',
+                            data: {
+                                labels: hours,
+                                datasets: [{
+                                    label: 'Avg Traffic Volume',
+                                    data: volumes,
+                                    backgroundColor: '#f472b6',
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
+                                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+                                }
+                            }
+                        });
+                    }
+
+                    // --- 4. LANE LOAD CHART (New) ---
+                    const laneData = data.lane_performance || {};
+                    const lanes = ['Lane 1', 'Lane 2', 'Lane 3', 'Lane 4'];
+                    const loads = lanes.map((_, i) => laneData[i + 1] || 0);
+                    const totalLaneLoad = loads.reduce((sum, val) => sum + val, 0);
+
+                    if (totalLaneLoad === 0) {
+                        showNoData('laneChart', 'No Lane Activity');
+                    } else {
+                        new Chart(document.getElementById('laneChart'), {
+                            type: 'polarArea',
+                            data: {
+                                labels: lanes,
+                                datasets: [{
+                                    label: 'Avg Density',
+                                    data: loads,
+                                    backgroundColor: [
+                                        'rgba(56, 189, 248, 0.5)',
+                                        'rgba(239, 68, 68, 0.5)',
+                                        'rgba(16, 185, 129, 0.5)',
+                                        'rgba(245, 158, 11, 0.5)'
+                                    ],
+                                    borderWidth: 0
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { position: 'bottom' } },
+                                scales: {
+                                    r: {
+                                        grid: { color: 'rgba(255,255,255,0.05)' },
+                                        ticks: { display: false, backdropColor: 'transparent' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
+
+                })
+                .catch(err => console.error("Error loading analytics:", err));
+        });
+
+        function showNoData(canvasId, msg) {
+            const canvas = document.getElementById(canvasId);
+            if (canvas) {
+                const parent = canvas.parentElement;
+                parent.innerHTML = `
+                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary); opacity:0.6;">
+                        <i class="fas fa-chart-area fa-3x" style="margin-bottom:1rem;"></i>
+                        <span>${msg}</span>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+
+</html>
