@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Vision AI | Reports & Logs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .filter-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .data-table th {
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 0.8rem;
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge.high {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .badge.medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .badge.low {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .page-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .page-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .page-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Side Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <div
+                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
+                    <i class="fas fa-camera-retro"></i>
+                </div>
+                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
+                    AI</h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i> Command Center
+                </a>
+                <a href="{{ url_for('city_overview') }}" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i> City Overview
+                </a>
+                <a href="{{ url_for('analysis') }}" class="nav-item">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-item active">
+                    <i class="fas fa-file-pdf"></i> Reports
+                </a>
+                <a href="{{ url_for('camera_config') }}" class="nav-item">
+                    <i class="fas fa-video"></i> Camera Config
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cogs"></i> Settings
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar glass-panel" style="margin-bottom: 20px;">
+                <h2 style="margin:0;font-size:1.4rem;"><i class="fas fa-clipboard-list"
+                        style="color:var(--accent);"></i> Historical Logs & Reports</h2>
+                <div class="header-actions">
+                    <a href="/api/export_stats" class="btn-primary" style="text-decoration:none;"><i
+                            class="fas fa-download"></i> Export CSV</a>
+                    <button class="btn-primary" style="background:var(--purple); border-color:var(--purple);"><i
+                            class="fas fa-file-pdf"></i> Generate PDF</button>
+                </div>
+            </header>
+
+            <div class="glass-panel" style="padding: 25px;">
+                <div class="report-header">
+                    <h3 style="margin:0;"><i class="fas fa-database"></i> Traffic Volume Records</h3>
+                    <div class="filter-bar">
+                        <span><i class="fas fa-filter"></i> Filter:</span>
+                        <input type="date" class="filter-input">
+                        <select class="filter-input">
+                            <option>All Lanes</option>
+                            <option>Lane 1</option>
+                            <option>Lane 2</option>
+                            <option>Lane 3</option>
+                            <option>Lane 4</option>
+                        </select>
+                        <select class="filter-input">
+                            <option>Any Density</option>
+                            <option>High</option>
+                            <option>Medium</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="overflow-x:auto;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Record ID</th>
+                                <th>Timestamp</th>
+                                <th>Lane</th>
+                                <th>Vehicle Count</th>
+                                <th>Density Level</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Populated by JS -->
+                            <tr>
+                                <td colspan="6" style="text-align:center;">Loading Data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination">
+                    <button class="page-btn"><i class="fas fa-chevron-left"></i></button>
+                    <button class="page-btn active">1</button>
+                    <button class="page-btn">2</button>
+                    <button class="page-btn">3</button>
+                    <button class="page-btn">...</button>
+                    <button class="page-btn">12</button>
+                    <button class="page-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Fetch Export Stats API
+        fetch('/api/stats')
+            .then(res => res.json())
+            .then(data => {
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+
+                // Assuming data.trend array is available from stats
+                if (data.trend && data.trend.length > 0) {
+                    data.trend.forEach((row, i) => {
+                        let badgeClass = row.count > 20 ? 'high' : (row.count > 10 ? 'medium' : 'low');
+                        let densityLabel = row.count > 20 ? 'HIGH' : (row.count > 10 ? 'MEDIUM' : 'LOW');
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td style="color:var(--text-secondary)">#TRF-${10842 - i}</td>
+                                <td><i class="far fa-clock"></i> ${row.time}</td>
+                                <td>Lane 0${row.lane + 1}</td>
+                                <td><strong>${row.count}</strong> vehicles</td>
+                                <td><span class="badge ${badgeClass}">${densityLabel}</span></td>
+                                <td><button class="btn-primary" style="padding:4px 8px; font-size:0.7rem; background:transparent; border:1px solid rgba(255,255,255,0.2);"><i class="fas fa-eye"></i> Details</button></td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    // Show empty state if no real data
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 2rem; color: var(--text-secondary);">No historical data recorded yet. Initialize cameras and wait for traffic logs.</td></tr>';
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;">Failed to load data. Use Export feature.</td></tr>';
+            });
+    </script>
+</body>
+
+</html>

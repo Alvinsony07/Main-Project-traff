@@ -4,290 +4,1620 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traffic Vision AI | Analytics</title>
+    <title>Traffic Vision AI | Analytics Engine</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* =============================================
+           TRAFFIC VISION AI — ANALYTICS ENGINE v4.0
+           Hyper-Premium Dark Command Interface
+        ============================================= */
+
+        :root {
+            --c-blue: #3b82f6;
+            --c-green: #10b981;
+            --c-red: #ef4444;
+            --c-yellow: #f59e0b;
+            --c-purple: #8b5cf6;
+            --c-pink: #ec4899;
+            --c-cyan: #06b6d4;
+            --bg: #060a14;
+            --surface: rgba(13, 18, 32, 0.9);
+            --border: rgba(255, 255, 255, 0.06);
+        }
+
+        /* ── GLOBAL RESET ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: #f0f4ff;
+            overflow-x: hidden;
+        }
+
+        /* ── ANIMATED GRID BG ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: 0;
+            pointer-events: none;
+            animation: gridDrift 30s linear infinite;
+        }
+
+        @keyframes gridDrift {
+            from {
+                background-position: 0 0;
+            }
+
+            to {
+                background-position: 60px 60px;
+            }
+        }
+
+        /* Ambient blobs */
+        .blob {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(120px);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .blob-1 {
+            width: 600px;
+            height: 600px;
+            top: -200px;
+            left: -200px;
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        .blob-2 {
+            width: 500px;
+            height: 500px;
+            bottom: -150px;
+            right: -100px;
+            background: rgba(139, 92, 246, 0.07);
+        }
+
+        .blob-3 {
+            width: 300px;
+            height: 300px;
+            top: 40%;
+            right: 20%;
+            background: rgba(16, 185, 129, 0.05);
+            animation: blobFloat 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes blobFloat {
+            from {
+                transform: translateY(0);
+            }
+
+            to {
+                transform: translateY(-40px);
+            }
+        }
+
+        /* ── LAYOUT ── */
+        .root {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            background: rgba(7, 11, 20, 0.95);
+            border-right: 1px solid var(--border);
+            backdrop-filter: blur(20px);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 4px 0 30px rgba(59, 130, 246, 0.06);
+        }
+
+        .sidebar .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 2.5rem;
+        }
+
+        .sidebar .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--c-blue), var(--c-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: white;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+
+        .sidebar .logo-text {
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+            line-height: 1.2;
+        }
+
+        .sidebar-scan-bar {
+            height: 2px;
+            width: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(90deg, transparent, var(--c-blue), transparent);
+            animation: scanPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes scanPulse {
+
+            0%,
+            100% {
+                opacity: 0.3;
+                transform: scaleX(0.5)
+            }
+
+            50% {
+                opacity: 1;
+                transform: scaleX(1)
+            }
+        }
+
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            background: rgba(59, 130, 246, 0.08);
+            color: #94a3b8;
+        }
+
+        .nav-item.active {
+            background: rgba(59, 130, 246, 0.12);
+            color: var(--c-blue);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.1);
+        }
+
+        .nav-item.logout:hover {
+            background: rgba(239, 68, 68, 0.08);
+            color: var(--c-red);
+        }
+
+        .nav-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.75rem 0;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── TICKER ── */
+        .ticker-strip {
+            background: rgba(59, 130, 246, 0.06);
+            border-bottom: 1px solid rgba(59, 130, 246, 0.12);
+            padding: 6px 2rem;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .ticker-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--c-blue);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .ticker-label::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--c-blue);
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.2
+            }
+        }
+
+        .ticker-scroll {
+            animation: tickerMove 20s linear infinite;
+            display: flex;
+            gap: 40px;
+        }
+
+        @keyframes tickerMove {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        .ticker-item {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .ticker-item .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+        }
+
+        /* ── TOP HEADER ── */
+        .top-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .page-title-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--c-blue);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .page-title-text h2 {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .page-title-text span {
+            font-size: 0.7rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .live-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: var(--c-green);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--c-green);
+            animation: blink 1.2s infinite;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            background: rgba(59, 130, 246, 0.08);
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            color: #60a5fa;
+            text-decoration: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .export-btn:hover {
+            background: rgba(59, 130, 246, 0.18);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+
+        /* ── KPI ROW ── */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            padding: 1.5rem 2rem 0;
+        }
+
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.3rem;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.25s, box-shadow 0.25s;
+            cursor: default;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .kpi-card.blue:hover {
+            box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .kpi-card.green:hover {
+            box-shadow: 0 12px 40px rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .kpi-card.red:hover {
+            box-shadow: 0 12px 40px rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .kpi-card.amber:hover {
+            box-shadow: 0 12px 40px rgba(245, 158, 11, 0.2);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+
+        .kpi-card-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(ellipse at top left, var(--glow-c) 0%, transparent 65%);
+            opacity: 0.12;
+        }
+
+        .kpi-card.blue {
+            --glow-c: var(--c-blue);
+        }
+
+        .kpi-card.green {
+            --glow-c: var(--c-green);
+        }
+
+        .kpi-card.red {
+            --glow-c: var(--c-red);
+        }
+
+        .kpi-card.amber {
+            --glow-c: var(--c-yellow);
+        }
+
+        .kpi-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1.2rem;
+        }
+
+        /* SVG Ring */
+        .ring-wrap {
+            position: relative;
+            width: 52px;
+            height: 52px;
+            flex-shrink: 0;
+        }
+
+        .ring-wrap svg {
+            transform: rotate(-90deg);
+        }
+
+        .ring-bg {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.05);
+            stroke-width: 4;
+        }
+
+        .ring-fg {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .ring-icon {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .kpi-val {
+            font-size: 2.4rem;
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .kpi-val.blue {
+            color: var(--c-blue);
+        }
+
+        .kpi-val.green {
+            color: var(--c-green);
+        }
+
+        .kpi-val.red {
+            color: var(--c-red);
+        }
+
+        .kpi-val.amber {
+            color: var(--c-yellow);
+        }
+
+        .kpi-label {
+            font-size: 0.62rem;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .kpi-sub {
+            font-size: 0.7rem;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #334155;
+        }
+
+        .kpi-sub.up {
+            color: var(--c-green);
+        }
+
+        .kpi-sub.warn {
+            color: var(--c-yellow);
+        }
+
+        .kpi-sub.alert {
+            color: var(--c-red);
+        }
+
+        /* ── CHARTS AREA ── */
+        .charts-area {
+            padding: 1.5rem 2rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .chart-row {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .row-full {
+            grid-template-columns: 1fr;
+        }
+
+        .row-60-40 {
+            grid-template-columns: 1.5fr 1fr;
+        }
+
+        .row-half {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .row-thirds {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .chart-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.4rem;
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s;
+        }
+
+        .chart-card:hover {
+            border-color: rgba(59, 130, 246, 0.18);
+        }
+
+        /* Subtle corner accents */
+        .chart-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 40%;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(59, 130, 246, 0.5), transparent);
+        }
+
+        .chart-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 1px;
+            height: 40%;
+            background: linear-gradient(180deg, rgba(59, 130, 246, 0.5), transparent);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .chart-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #e2e8f0;
+        }
+
+        .chart-title .ico {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .ico.blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--c-blue);
+        }
+
+        .ico.green {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--c-green);
+        }
+
+        .ico.purple {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--c-purple);
+        }
+
+        .ico.pink {
+            background: rgba(236, 72, 153, 0.15);
+            color: var(--c-pink);
+        }
+
+        .ico.amber {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--c-yellow);
+        }
+
+        .ico.cyan {
+            background: rgba(6, 182, 212, 0.15);
+            color: var(--c-cyan);
+        }
+
+        .badge {
+            font-size: 0.58rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 3px 9px;
+            border-radius: 6px;
+        }
+
+        .badge.live {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--c-green);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+
+        .badge.static {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+
+        .badge.pulse {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--c-red);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            animation: badgePulse 2s infinite;
+        }
+
+        @keyframes badgePulse {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.5
+            }
+        }
+
+        .canvas-wrap {
+            position: relative;
+        }
+
+        .canvas-wrap.h-280 {
+            height: 280px;
+        }
+
+        .canvas-wrap.h-200 {
+            height: 200px;
+        }
+
+        .canvas-wrap.h-160 {
+            height: 160px;
+        }
+
+        /* ── LANE BARS ── */
+        .lane-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .lb-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .lb-label {
+            font-size: 0.68rem;
+            color: #64748b;
+            font-weight: 700;
+            width: 48px;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .lb-track {
+            flex: 1;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+
+        .lb-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .lb-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.5) 50%, transparent 100%);
+            animation: sheenAnim 2s ease-in-out infinite;
+        }
+
+        @keyframes sheenAnim {
+            0% {
+                transform: translateX(-100%)
+            }
+
+            100% {
+                transform: translateX(300%)
+            }
+        }
+
+        .lb-pct {
+            font-size: 0.65rem;
+            font-weight: 700;
+            width: 36px;
+            text-align: right;
+            flex-shrink: 0;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── SIGNAL RINGS ── */
+        .signal-rings {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 0.5rem 0;
+        }
+
+        .sig-ring {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sig-ring-val {
+            font-size: 0.7rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .sig-ring-lbl {
+            font-size: 0.55rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        /* ── ACTIVITY LOG FEED ── */
+        .log-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.025);
+            border-left: 2px solid #1e293b;
+            animation: entrySlide 0.4s ease-out;
+            font-size: 0.75rem;
+        }
+
+        @keyframes entrySlide {
+            from {
+                opacity: 0;
+                transform: translateX(-8px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0)
+            }
+        }
+
+        .log-entry.green {
+            border-color: var(--c-green);
+        }
+
+        .log-entry.red {
+            border-color: var(--c-red);
+        }
+
+        .log-entry.yellow {
+            border-color: var(--c-yellow);
+        }
+
+        .log-entry.blue {
+            border-color: var(--c-blue);
+        }
+
+        .log-time {
+            color: #334155;
+            font-size: 0.62rem;
+            font-family: 'JetBrains Mono', monospace;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
+        .log-msg {
+            color: #94a3b8;
+            line-height: 1.4;
+        }
+
+        /* ── NO DATA ── */
+        .no-data {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 10px;
+            color: #1e293b;
+        }
+
+        .no-data i {
+            font-size: 1.8rem;
+        }
+
+        .no-data span {
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── PAGE ENTER ANIMATION ── */
+        .fade-in {
+            animation: fadeIn 0.5s ease-out both;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(12px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .delay-1 {
+            animation-delay: 0.08s;
+        }
+
+        .delay-2 {
+            animation-delay: 0.16s;
+        }
+
+        .delay-3 {
+            animation-delay: 0.24s;
+        }
+
+        .delay-4 {
+            animation-delay: 0.32s;
+        }
+
+        .delay-5 {
+            animation-delay: 0.4s;
+        }
+    </style>
 </head>
 
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar glass-panel">
+
+    <!-- Ambient blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="root">
+
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
             <div class="logo-area">
-                <div
-                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
-                    <i class="fas fa-camera-retro"></i></div>
-                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
-                    AI</h2>
+                <div class="logo-icon"><i class="fas fa-camera-retro"></i></div>
+                <div class="logo-text">Traffic<br>Vision AI</div>
             </div>
-
-            <!-- Scan Bar -->
-            <div class="sidebar-scan-bar">
-                <div class="scan-glow"></div>
-            </div>
-
+            <div class="sidebar-scan-bar"></div>
             <nav class="nav-menu">
-                <a href="{{ url_for('dashboard') }}" class="nav-item">
-                    <i class="fas fa-th-large"></i> Command Center
-                </a>
-                <a href="{{ url_for('analysis') }}" class="nav-item active">
-                    <i class="fas fa-chart-line"></i> Analytics
-                </a>
-                <a href="{{ url_for('ambulance_portal') }}" class="nav-item" target="_blank">
-                    <i class="fas fa-truck-medical"></i> Ambulance Unit
-                </a>
+                <a href="{{ url_for('dashboard') }}" class="nav-item"><i class="fas fa-th-large"></i> Command Center</a>
+                <a href="{{ url_for('city_overview') }}" class="nav-item"><i class="fas fa-map-marked-alt"></i> City
+                    Overview</a>
+                <a href="{{ url_for('analysis') }}" class="nav-item active"><i class="fas fa-chart-line"></i>
+                    Analytics</a>
+                <a href="{{ url_for('reports') }}" class="nav-item"><i class="fas fa-file-pdf"></i> Reports</a>
+                <a href="{{ url_for('camera_config') }}" class="nav-item"><i class="fas fa-video"></i> Camera Config</a>
+                <a href="{{ url_for('settings') }}" class="nav-item"><i class="fas fa-cogs"></i> Settings</a>
             </nav>
-
             <div class="sidebar-footer">
+                <div class="nav-divider"></div>
                 <div
-                    style="font-size:0.6rem;color:var(--text-secondary);letter-spacing:0.5px;padding:0.6rem 1rem 0.4rem;opacity:0.6;">
+                    style="font-size:0.58rem;color:#1e293b;padding:0.5rem 1rem;font-family:'JetBrains Mono',monospace;letter-spacing:1px;">
                     TRAFFIC VISION AI v3.0</div>
-                <a href="{{ url_for('logout') }}" class="nav-item logout">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item logout"><i class="fas fa-sign-out-alt"></i> Logout</a>
             </div>
         </aside>
 
-        <!-- Main Analytics Area -->
-        <main class="main-content">
-            <header class="top-bar glass-panel">
-                <div class="status-group">
-                    <div class="status-text">
-                        <span class="label">MODULE</span>
-                        <span class="value">ANALYTICS ENGINE</span>
+        <!-- ===== MAIN ===== -->
+        <div class="main">
+
+            <!-- Ticker strip -->
+            <div class="ticker-strip">
+                <div class="ticker-label">LIVE FEED</div>
+                <div style="overflow:hidden;flex:1;position:relative;">
+                    <div class="ticker-scroll" id="ticker-scroll">
+                        <!-- Duplicated for seamless loop -->
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-green)"></span> LANE 1 —
+                            <span id="t-l1">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-blue)"></span> LANE 2 —
+                            <span id="t-l2">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-purple)"></span> LANE 3 —
+                            <span id="t-l3">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-yellow)"></span> LANE 4 —
+                            <span id="t-l4">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-cyan)"></span> SIGNAL —
+                            <span id="t-sig">--</span></span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-red)"></span> AMBULANCE
+                            MODE — <span id="t-amb">OFF</span></span>
+                        <!-- dupe -->
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-green)"></span> LANE 1 —
+                            <span class="t-l1-dup">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-blue)"></span> LANE 2 —
+                            <span class="t-l2-dup">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-purple)"></span> LANE 3 —
+                            <span class="t-l3-dup">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-yellow)"></span> LANE 4 —
+                            <span class="t-l4-dup">--</span> vehicles</span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-cyan)"></span> SIGNAL —
+                            <span class="t-sig-dup">--</span></span>
+                        <span class="ticker-item"><span class="dot" style="background:var(--c-red)"></span> AMBULANCE
+                            MODE — <span class="t-amb-dup">OFF</span></span>
                     </div>
                 </div>
-                <div class="header-actions">
-                    <a href="/api/export_stats" class="btn-icon"
-                        style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem; background: rgba(56, 189, 248, 0.1); color: #38bdf8; padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
-                        <i class="fas fa-file-csv"></i> Export Data
-                    </a>
-                </div>
-            </header>
-
-            <div class="charts-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-
-                <!-- Chart 1: Trend -->
-                <div class="lane-card glass-panel" style="min-height: 400px; grid-column: span 2;">
-                    <div class="lane-header">
-                        <h3><i class="fas fa-wave-square"></i> Traffic Volume Trend</h3>
-                    </div>
-                    <div style="flex-grow: 1; position: relative;">
-                        <canvas id="trendChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Chart 2: Distribution -->
-                <div class="lane-card glass-panel" style="min-height: 350px;">
-                    <div class="lane-header">
-                        <h3><i class="fas fa-chart-pie"></i> Vehicle Composition</h3>
-                    </div>
-                    <div style="flex-grow: 1; position: relative;">
-                        <canvas id="distChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Chart 3: Peak Hours (New) -->
-                <div class="lane-card glass-panel" style="min-height: 350px;">
-                    <div class="lane-header">
-                        <h3><i class="fas fa-clock"></i> Hourly Peak Traffic</h3>
-                    </div>
-                    <div style="flex-grow: 1; position: relative;">
-                        <canvas id="peakChart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Chart 4: Lane Load (New) -->
-                <div class="lane-card glass-panel" style="min-height: 350px; grid-column: span 2;">
-                    <div class="lane-header">
-                        <h3><i class="fas fa-road"></i> Lane Load Distibution</h3>
-                    </div>
-                    <div style="flex-grow: 1; position: relative;">
-                        <canvas id="laneChart"></canvas>
-                    </div>
-                </div>
-
             </div>
-        </main>
-    </div>
+
+            <!-- Header -->
+            <div class="top-header fade-in">
+                <div class="page-title">
+                    <div class="page-title-icon"><i class="fas fa-brain"></i></div>
+                    <div class="page-title-text">
+                        <h2>Analytics Engine</h2>
+                        <span>Real-time traffic intelligence</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="live-pill">
+                        <div class="live-dot"></div> STREAMING
+                    </div>
+                    <a href="/api/export_stats" class="export-btn"><i class="fas fa-file-csv"></i> Export CSV</a>
+                </div>
+            </div>
+
+            <!-- KPI Row -->
+            <div class="kpi-row">
+                <div class="kpi-card blue fade-in delay-1">
+                    <div class="kpi-card-bg"></div>
+                    <div class="kpi-top">
+                        <div>
+                            <div class="kpi-val blue" id="kpi-total">0</div>
+                            <div class="kpi-label">Total Vehicles</div>
+                        </div>
+                        <div class="ring-wrap">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                                <circle class="ring-bg" cx="26" cy="26" r="22" />
+                                <circle class="ring-fg" id="ring-total" cx="26" cy="26" r="22" stroke="var(--c-blue)"
+                                    stroke-dasharray="138.2" stroke-dashoffset="138.2" />
+                            </svg>
+                            <div class="ring-icon" style="color:var(--c-blue)"><i class="fas fa-car"></i></div>
+                        </div>
+                    </div>
+                    <div class="kpi-sub up" id="kpi-total-sub"><i class="fas fa-arrow-up"></i> Session total</div>
+                </div>
+
+                <div class="kpi-card green fade-in delay-2">
+                    <div class="kpi-card-bg"></div>
+                    <div class="kpi-top">
+                        <div>
+                            <div class="kpi-val green" id="kpi-rate">0</div>
+                            <div class="kpi-label">Live Traffic Rate</div>
+                        </div>
+                        <div class="ring-wrap">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                                <circle class="ring-bg" cx="26" cy="26" r="22" />
+                                <circle class="ring-fg" id="ring-rate" cx="26" cy="26" r="22" stroke="var(--c-green)"
+                                    stroke-dasharray="138.2" stroke-dashoffset="138.2" />
+                            </svg>
+                            <div class="ring-icon" style="color:var(--c-green)"><i class="fas fa-gauge-high"></i></div>
+                        </div>
+                    </div>
+                    <div class="kpi-sub up" id="kpi-rate-sub"><i class="fas fa-chart-line"></i> vehicles active now
+                    </div>
+                </div>
+
+                <div class="kpi-card red fade-in delay-3">
+                    <div class="kpi-card-bg"></div>
+                    <div class="kpi-top">
+                        <div>
+                            <div class="kpi-val red" id="kpi-emerg">0</div>
+                            <div class="kpi-label">Emergency Events</div>
+                        </div>
+                        <div class="ring-wrap">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                                <circle class="ring-bg" cx="26" cy="26" r="22" />
+                                <circle class="ring-fg" id="ring-emerg" cx="26" cy="26" r="22" stroke="var(--c-red)"
+                                    stroke-dasharray="138.2" stroke-dashoffset="138.2" />
+                            </svg>
+                            <div class="ring-icon" style="color:var(--c-red)"><i class="fas fa-truck-medical"></i></div>
+                        </div>
+                    </div>
+                    <div class="kpi-sub alert" id="kpi-emerg-sub"><i class="fas fa-bell"></i> Override events</div>
+                </div>
+
+                <div class="kpi-card amber fade-in delay-4">
+                    <div class="kpi-card-bg"></div>
+                    <div class="kpi-top">
+                        <div>
+                            <div class="kpi-val amber" id="kpi-peak">L1</div>
+                            <div class="kpi-label">Peak Lane</div>
+                        </div>
+                        <div class="ring-wrap">
+                            <svg width="52" height="52" viewBox="0 0 52 52">
+                                <circle class="ring-bg" cx="26" cy="26" r="22" />
+                                <circle class="ring-fg" id="ring-peak" cx="26" cy="26" r="22" stroke="var(--c-yellow)"
+                                    stroke-dasharray="138.2" stroke-dashoffset="34.55" />
+                            </svg>
+                            <div class="ring-icon" style="color:var(--c-yellow)"><i class="fas fa-road"></i></div>
+                        </div>
+                    </div>
+                    <div class="kpi-sub warn" id="kpi-peak-sub"><i class="fas fa-traffic-light"></i> highest load</div>
+                </div>
+            </div>
+
+            <!-- Charts -->
+            <div class="charts-area">
+
+                <!-- Row 1: Live streaming trend -->
+                <div class="chart-row row-full fade-in delay-2">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico blue"><i class="fas fa-wave-square"></i></span>
+                                Traffic Volume — Live Stream
+                            </div>
+                            <span class="badge live">● Streaming</span>
+                        </div>
+                        <div class="canvas-wrap h-280">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Composition + Lane Bars -->
+                <div class="chart-row row-60-40 fade-in delay-3">
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico purple"><i class="fas fa-chart-pie"></i></span>
+                                Vehicle Composition
+                            </div>
+                            <span class="badge static">Session</span>
+                        </div>
+                        <div class="canvas-wrap h-200">
+                            <canvas id="distChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico green"><i class="fas fa-bars-staggered"></i></span>
+                                Lane Load Distribution
+                            </div>
+                            <span class="badge live">Live</span>
+                        </div>
+                        <div id="lane-bars" class="lane-bars" style="margin-top:0.5rem;"></div>
+                    </div>
+
+                </div>
+
+                <!-- Row 3: Peak + Signal rings + Activity log -->
+                <div class="chart-row row-thirds fade-in delay-4">
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico pink"><i class="fas fa-clock"></i></span>
+                                Hourly Peak Traffic
+                            </div>
+                            <span class="badge static">24h</span>
+                        </div>
+                        <div class="canvas-wrap h-160">
+                            <canvas id="peakChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico cyan"><i class="fas fa-traffic-light"></i></span>
+                                Live Signal States
+                            </div>
+                            <span class="badge pulse">● Live</span>
+                        </div>
+                        <div class="signal-rings" id="signal-rings" style="margin-top:0.5rem;">
+                            <!-- Injected by JS -->
+                        </div>
+                        <div class="canvas-wrap h-160" style="margin-top:0.5rem;">
+                            <canvas id="signalChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">
+                                <span class="ico amber"><i class="fas fa-terminal"></i></span>
+                                System Event Log
+                            </div>
+                            <span class="badge live">Live</span>
+                        </div>
+                        <div class="log-feed" id="log-feed"></div>
+                    </div>
+
+                </div>
+
+            </div><!-- /charts-area -->
+        </div><!-- /main -->
+    </div><!-- /root -->
 
     <script>
-        // Chart Config
-        Chart.defaults.color = '#94a3b8';
+        // ─── CONFIG ───────────────────────────────────────
+        Chart.defaults.color = '#475569';
+        Chart.defaults.font.family = 'Inter, sans-serif';
 
-        document.addEventListener('DOMContentLoaded', function () {
-            fetch('/api/stats?t=' + new Date().getTime())
-                .then(res => {
-                    if (!res.ok) throw new Error("API Returned " + res.status);
-                    return res.json();
-                })
+        const C = {
+            blue: '#3b82f6',
+            green: '#10b981',
+            red: '#ef4444',
+            yellow: '#f59e0b',
+            purple: '#8b5cf6',
+            pink: '#ec4899',
+            cyan: '#06b6d4',
+        };
+
+        const LANE_COLORS = [C.blue, C.green, C.purple, C.yellow];
+        const LANE_COLORS_RGB = ['59,130,246', '16,185,129', '139,92,246', '245,158,11'];
+
+        let trendChart = null;
+        let signalChart = null;
+        let streamBuffer = [];   // rolling window for live trend
+
+        // ─── ANIMATED COUNTER ─────────────────────────────
+        function animateCount(el, target, suffix = '') {
+            const start = parseInt(el.textContent) || 0;
+            const dur = 1200;
+            const startTime = performance.now();
+            function step(now) {
+                const t = Math.min((now - startTime) / dur, 1);
+                const ease = 1 - Math.pow(1 - t, 3);
+                el.textContent = Math.round(start + (target - start) * ease) + suffix;
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        // ─── RING PROGRESS ────────────────────────────────
+        function setRing(id, pct) {
+            const circ = 138.2;
+            const el = document.getElementById(id);
+            if (el) el.style.strokeDashoffset = circ - (circ * Math.min(pct, 1));
+        }
+
+        // ─── STATIC ANALYTICS ─────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch('/api/stats?t=' + Date.now())
+                .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
                 .then(data => {
-                    const hasData = (data.trend && data.trend.length > 0);
+                    const hasData = data.trend && data.trend.length > 0;
 
                     if (!hasData) {
-                        showNoData('trendChart', 'No Traffic Data Recorded Yet');
-                        showNoData('distChart', 'Waiting for Vehicles...');
-                        showNoData('peakChart', 'No Hourly Data');
-                        showNoData('laneChart', 'No Lane Activity');
+                        noData('trendChart'); noData('distChart'); noData('peakChart');
+                        buildLaneBars([0, 0, 0, 0]);
                         return;
                     }
 
-                    // --- 1. TREND CHART ---
-                    const trends = data.trend || [];
-                    const timeLabels = trends.map(d => d.time);
-                    const counts = trends.map(d => d.count);
+                    buildKPIs(data);
+                    buildTrendChart(data);
+                    buildDistChart(data);
+                    buildPeakChart(data);
 
-                    new Chart(document.getElementById('trendChart'), {
-                        type: 'line',
-                        data: {
-                            labels: timeLabels,
-                            datasets: [{
-                                label: 'Real-time Traffic Volume',
-                                data: counts,
-                                borderColor: '#38bdf8',
-                                backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                                fill: true,
-                                tension: 0.3,
-                                pointRadius: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                x: { grid: { display: false } }, // Hide x grid
-                                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
-                            }
-                        }
-                    });
-
-                    // --- 2. VEHICLE COMPOSITION ---
-                    const dist = data.distribution || {};
-                    const distLabels = Object.keys(dist);
-                    const distValues = Object.values(dist);
-
-                    if (distLabels.length === 0) {
-                        showNoData('distChart', 'No Vehicles Detected');
-                    } else {
-                        new Chart(document.getElementById('distChart'), {
-                            type: 'doughnut',
-                            data: {
-                                labels: distLabels,
-                                datasets: [{
-                                    data: distValues,
-                                    backgroundColor: ['#38bdf8', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'],
-                                    borderWidth: 0
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                cutout: '75%',
-                                plugins: {
-                                    legend: { position: 'right', labels: { boxWidth: 12, padding: 15 } }
-                                }
-                            }
-                        });
-                    }
-
-                    // --- 3. PEAK HOURS CHART (New) ---
-                    const peakData = data.peak_hours || {};
-                    const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-                    const volumes = hours.map((_, i) => peakData[i] || 0);
-                    const totalPeakVolume = volumes.reduce((sum, val) => sum + val, 0);
-
-                    if (totalPeakVolume === 0) {
-                        showNoData('peakChart', 'No Hourly Data');
-                    } else {
-                        new Chart(document.getElementById('peakChart'), {
-                            type: 'bar',
-                            data: {
-                                labels: hours,
-                                datasets: [{
-                                    label: 'Avg Traffic Volume',
-                                    data: volumes,
-                                    backgroundColor: '#f472b6',
-                                    borderRadius: 4
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
-                                scales: {
-                                    x: { grid: { display: false }, ticks: { maxTicksLimit: 8 } },
-                                    y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
-                                }
-                            }
-                        });
-                    }
-
-                    // --- 4. LANE LOAD CHART (New) ---
-                    const laneData = data.lane_performance || {};
-                    const lanes = ['Lane 1', 'Lane 2', 'Lane 3', 'Lane 4'];
-                    const loads = lanes.map((_, i) => laneData[i + 1] || 0);
-                    const totalLaneLoad = loads.reduce((sum, val) => sum + val, 0);
-
-                    if (totalLaneLoad === 0) {
-                        showNoData('laneChart', 'No Lane Activity');
-                    } else {
-                        new Chart(document.getElementById('laneChart'), {
-                            type: 'polarArea',
-                            data: {
-                                labels: lanes,
-                                datasets: [{
-                                    label: 'Avg Density',
-                                    data: loads,
-                                    backgroundColor: [
-                                        'rgba(56, 189, 248, 0.5)',
-                                        'rgba(239, 68, 68, 0.5)',
-                                        'rgba(16, 185, 129, 0.5)',
-                                        'rgba(245, 158, 11, 0.5)'
-                                    ],
-                                    borderWidth: 0
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { position: 'bottom' } },
-                                scales: {
-                                    r: {
-                                        grid: { color: 'rgba(255,255,255,0.05)' },
-                                        ticks: { display: false, backdropColor: 'transparent' }
-                                    }
-                                }
-                            }
-                        });
-                    }
-
-
+                    const lp = data.lane_performance || {};
+                    buildLaneBars([lp[1] || 0, lp[2] || 0, lp[3] || 0, lp[4] || 0]);
                 })
-                .catch(err => {
-                    console.error("Error loading analytics:", err);
-                    const msg = "Error: " + err.message;
-                    showNoData('trendChart', msg);
-                    showNoData('distChart', msg);
-                    showNoData('peakChart', msg);
-                    showNoData('laneChart', msg);
+                .catch(() => {
+                    ['trendChart', 'distChart', 'peakChart'].forEach(noData);
+                    buildLaneBars([0, 0, 0, 0]);
                 });
         });
 
-        function showNoData(canvasId, msg) {
-            const canvas = document.getElementById(canvasId);
-            if (canvas) {
-                const parent = canvas.parentElement;
-                parent.innerHTML = `
-                    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:var(--text-secondary); opacity:0.6;">
-                        <i class="fas fa-chart-area fa-3x" style="margin-bottom:1rem;"></i>
-                        <span>${msg}</span>
-                    </div>
-                `;
+        // ─── KPIs ──────────────────────────────────────────
+        function buildKPIs(data) {
+            const trend = data.trend || [];
+            const total = trend.reduce((s, d) => s + (d.count || 0), 0);
+            const lp = data.lane_performance || {};
+            const loads = [lp[1] || 0, lp[2] || 0, lp[3] || 0, lp[4] || 0];
+            const maxLoad = Math.max(...loads) || 1;
+            const peakIdx = loads.indexOf(maxLoad);
+
+            animateCount(document.getElementById('kpi-total'), total);
+            setRing('ring-total', total / (total * 1.2 || 1));
+
+            document.getElementById('kpi-peak').textContent = 'L' + (peakIdx + 1);
+            document.getElementById('kpi-peak-sub').innerHTML = `<i class="fas fa-traffic-light"></i> ${maxLoad} vehicles`;
+
+            document.getElementById('kpi-emerg').textContent = data.ambulance_events || 0;
+            const ee = data.ambulance_events || 0;
+            setRing('ring-emerg', ee / 10);
+
+            document.getElementById('kpi-total-sub').innerHTML = `<i class="fas fa-arrow-up"></i> ${trend.length} data points`;
+        }
+
+        // ─── TREND CHART (static base, then stream updates live) ──
+        function buildTrendChart(data) {
+            const trends = data.trend || [];
+            const labels = trends.map(d => d.time);
+            const counts = trends.map(d => d.count);
+            streamBuffer = counts.slice(-30);
+
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const grad = ctx.createLinearGradient(0, 0, 0, 280);
+            grad.addColorStop(0, 'rgba(59,130,246,0.35)');
+            grad.addColorStop(0.6, 'rgba(59,130,246,0.05)');
+            grad.addColorStop(1, 'rgba(59,130,246,0)');
+
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.slice(-30),
+                    datasets: [{
+                        label: 'Traffic Volume',
+                        data: streamBuffer,
+                        borderColor: C.blue,
+                        backgroundColor: grad,
+                        fill: true, tension: 0.4,
+                        pointRadius: 0, pointHoverRadius: 5,
+                        pointHoverBackgroundColor: C.blue,
+                        borderWidth: 2,
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    animation: { duration: 400 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(7,11,20,0.95)',
+                            borderColor: 'rgba(59,130,246,0.25)', borderWidth: 1,
+                            titleColor: '#f0f4ff', bodyColor: '#64748b',
+                            padding: 12, displayColors: false
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8, color: '#334155' } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false }, ticks: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+
+        // ─── ADD LIVE POINT ────────────────────────────────
+        function pushToTrend(newCount, label) {
+            if (!trendChart) return;
+            const MAX = 40;
+            trendChart.data.labels.push(label);
+            trendChart.data.datasets[0].data.push(newCount);
+            if (trendChart.data.labels.length > MAX) {
+                trendChart.data.labels.shift();
+                trendChart.data.datasets[0].data.shift();
             }
+            trendChart.update('none');
+        }
+
+        // ─── DIST CHART ────────────────────────────────────
+        function buildDistChart(data) {
+            const dist = data.distribution || {};
+            const labels = Object.keys(dist), values = Object.values(dist);
+            if (!labels.length) { noData('distChart'); return; }
+
+            const palette = [C.blue, C.red, C.green, C.yellow, C.purple, C.pink, C.cyan];
+            new Chart(document.getElementById('distChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{ data: values, backgroundColor: palette, borderWidth: 0, hoverOffset: 8 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '72%',
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 9, boxHeight: 9, padding: 16, color: '#64748b', font: { size: 11 } } },
+                        tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10 }
+                    }
+                }
+            });
+        }
+
+        // ─── PEAK CHART ────────────────────────────────────
+        function buildPeakChart(data) {
+            const peakData = data.peak_hours || {};
+            const hours = Array.from({ length: 24 }, (_, i) => i + ':00');
+            const volumes = hours.map((_, i) => peakData[i] || 0);
+            if (!volumes.some(v => v > 0)) { noData('peakChart'); return; }
+
+            const maxV = Math.max(...volumes);
+            const barColors = volumes.map(v => {
+                const r = maxV > 0 ? v / maxV : 0;
+                return r > 0.75 ? C.red : r > 0.4 ? C.yellow : C.blue;
+            });
+
+            new Chart(document.getElementById('peakChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: hours,
+                    datasets: [{ data: volumes, backgroundColor: barColors, borderRadius: 3, borderSkipped: false }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10, displayColors: false } },
+                    scales: {
+                        x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8, color: '#334155' } },
+                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false }, ticks: { color: '#334155' } }
+                    }
+                }
+            });
+        }
+
+        // ─── LANE BARS ─────────────────────────────────────
+        function buildLaneBars(loads) {
+            const container = document.getElementById('lane-bars');
+            const max = Math.max(...loads) || 1;
+            container.innerHTML = loads.map((v, i) => `
+            <div class="lb-row">
+                <div class="lb-label">Lane ${i + 1}</div>
+                <div class="lb-track">
+                    <div class="lb-fill" id="lb-${i}" style="width:0%;background:linear-gradient(90deg,rgba(${LANE_COLORS_RGB[i]},0.6),${LANE_COLORS[i]});"></div>
+                </div>
+                <div class="lb-pct" style="color:${LANE_COLORS[i]}" id="lb-val-${i}">${v}</div>
+            </div>`).join('');
+
+            requestAnimationFrame(() => {
+                loads.forEach((v, i) => {
+                    const pct = Math.round((v / max) * 100);
+                    setTimeout(() => {
+                        const el = document.getElementById('lb-' + i);
+                        if (el) el.style.width = pct + '%';
+                    }, 120 * i);
+                });
+            });
+        }
+
+        // ─── SIGNAL RINGS ──────────────────────────────────
+        function buildSignalRings(counts) {
+            const total = Math.max(counts.GREEN + counts.YELLOW + counts.RED, 1);
+            const ringsEl = document.getElementById('signal-rings');
+            const items = [
+                { label: 'GREEN', val: counts.GREEN, color: C.green },
+                { label: 'YELLOW', val: counts.YELLOW, color: C.yellow },
+                { label: 'RED', val: counts.RED, color: C.red },
+            ];
+            ringsEl.innerHTML = items.map(it => {
+                const circ = 56.5;
+                const offset = circ - (circ * it.val / total);
+                return `
+            <div class="sig-ring">
+                <svg width="44" height="44" viewBox="0 0 44 44" style="transform:rotate(-90deg)">
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="3"/>
+                    <circle cx="22" cy="22" r="18" fill="none" stroke="${it.color}" stroke-width="3"
+                        stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+                        style="transition:stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)"/>
+                </svg>
+                <div class="sig-ring-val" style="color:${it.color};margin-top:-36px;position:relative;z-index:1;font-size:0.8rem;">${it.val}</div>
+                <div style="height:16px;"></div>
+                <div class="sig-ring-lbl">${it.label}</div>
+            </div>`;
+            }).join('');
+        }
+
+        // ─── SIGNAL DOUGHNUT ───────────────────────────────
+        function updateSignalChart(counts) {
+            const data = [counts.GREEN, counts.YELLOW, counts.RED];
+            if (!signalChart) {
+                const ctx = document.getElementById('signalChart').getContext('2d');
+                signalChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: { labels: ['Green', 'Yellow', 'Red'], datasets: [{ data, backgroundColor: [C.green, C.yellow, C.red], borderWidth: 0, hoverOffset: 5 }] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, cutout: '70%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10 }
+                        }
+                    }
+                });
+            } else {
+                signalChart.data.datasets[0].data = data;
+                signalChart.update('none');
+            }
+        }
+
+        // ─── EVENT LOG ─────────────────────────────────────
+        const logFeed = document.getElementById('log-feed');
+        let logEntries = [];
+
+        function addLog(msg, type = 'blue') {
+            const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+            logEntries.unshift({ msg, type, time: now });
+            if (logEntries.length > 12) logEntries.pop();
+            logFeed.innerHTML = logEntries.map(e => `
+            <div class="log-entry ${e.type}">
+                <span class="log-time">${e.time}</span>
+                <span class="log-msg">${e.msg}</span>
+            </div>`).join('');
+        }
+
+        addLog('Analytics engine started', 'blue');
+        addLog('Connecting to live data stream...', 'green');
+
+        // ─── TICKER UPDATE ─────────────────────────────────
+        function updateTicker(laneData, states, ambulance) {
+            const lanes = ['l1', 'l2', 'l3', 'l4'];
+            lanes.forEach((id, i) => {
+                const v = laneData[i.toString()]?.count ?? '--';
+                const el1 = document.getElementById('t-' + id);
+                const el2s = document.querySelectorAll('.' + id + '-dup');
+                if (el1) el1.textContent = v;
+                el2s.forEach(e => e.textContent = v);
+            });
+
+            const stateStr = Object.values(states || {}).join(' | ') || '—';
+            const tSig = document.getElementById('t-sig');
+            const tAmb = document.getElementById('t-amb');
+            if (tSig) tSig.textContent = stateStr;
+            if (tAmb) tAmb.textContent = ambulance ? '🚨 ACTIVE' : 'OFF';
+            document.querySelectorAll('.t-sig-dup').forEach(e => e.textContent = stateStr);
+            document.querySelectorAll('.t-amb-dup').forEach(e => e.textContent = ambulance ? '🚨 ACTIVE' : 'OFF');
+        }
+
+        // ─── LIVE POLL ─────────────────────────────────────
+        let lastAmbulance = false;
+        let liveTotal = 0;
+
+        function pollLive() {
+            fetch('/api/status')
+                .then(r => r.json())
+                .then(data => {
+                    const states = data.signal_status?.states || {};
+                    const ambulance = data.signal_status?.ambulance_mode || false;
+                    const lanes = data.lane_data || {};
+
+                    // Count signals
+                    const counts = { GREEN: 0, YELLOW: 0, RED: 0 };
+                    Object.values(states).forEach(s => { if (counts[s] !== undefined) counts[s]++; });
+                    buildSignalRings(counts);
+                    updateSignalChart(counts);
+
+                    // Live rate total
+                    const nowTotal = Object.values(lanes).reduce((s, l) => s + (l.count || 0), 0);
+                    animateCount(document.getElementById('kpi-rate'), nowTotal);
+                    document.getElementById('kpi-rate-sub').innerHTML = `<i class="fas fa-chart-line"></i> ${nowTotal} vehicles active now`;
+                    setRing('ring-rate', Math.min(nowTotal / 40, 1));
+
+                    // Lane bars live update
+                    const loads = [lanes['0']?.count || 0, lanes['1']?.count || 0, lanes['2']?.count || 0, lanes['3']?.count || 0];
+                    buildLaneBars(loads);
+
+                    // Ticker
+                    updateTicker(lanes, states, ambulance);
+
+                    // Stream to trend chart
+                    const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                    pushToTrend(nowTotal, now);
+
+                    // Ambulance event log
+                    if (ambulance && !lastAmbulance) {
+                        addLog('🚨 AMBULANCE OVERRIDE ACTIVATED — All lanes clearing', 'red');
+                    }
+                    if (!ambulance && lastAmbulance) {
+                        addLog('✅ Ambulance override cleared — Normal operation resumed', 'green');
+                    }
+                    lastAmbulance = ambulance;
+
+                    // Random log for demo feedback
+                    if (Math.random() < 0.15) {
+                        const msgs = [
+                            `Signal switch → ${Object.values(states).join(', ')}`,
+                            `Lane 1 density: ${lanes['0']?.density || 'LOW'}`,
+                            `Lane 2 load: ${lanes['1']?.count || 0} vehicles`,
+                            `System heartbeat OK`,
+                        ];
+                        addLog(msgs[Math.floor(Math.random() * msgs.length)], 'blue');
+                    }
+                })
+                .catch(() => {
+                    addLog('⚠ Connection to backend lost', 'red');
+                });
+        }
+
+        pollLive();
+        setInterval(pollLive, 2000);
+
+        // ─── NO DATA ────────────────────────────────────────
+        function noData(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.parentElement.innerHTML = `
+            <div class="no-data">
+                <i class="fas fa-satellite-dish"></i>
+                <span>No data — start cameras to begin collecting metrics</span>
+            </div>`;
         }
     </script>
 </body>

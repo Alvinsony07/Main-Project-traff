@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Vision AI | System Settings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .settings-card {
+            padding: 25px;
+            border-radius: 12px;
+            transition: transform 0.3s;
+        }
+
+        .settings-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+            border-radius: 6px;
+            font-family: inherit;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+        }
+
+        .range-slider {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .switch-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        }
+
+        .switch-container:last-child {
+            border-bottom: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Side Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <div
+                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
+                    <i class="fas fa-camera-retro"></i>
+                </div>
+                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
+                    AI</h2>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i> Command Center
+                </a>
+                <a href="{{ url_for('city_overview') }}" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i> City Overview
+                </a>
+                <a href="{{ url_for('analysis') }}" class="nav-item">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-item">
+                    <i class="fas fa-file-pdf"></i> Reports
+                </a>
+                <a href="{{ url_for('camera_config') }}" class="nav-item">
+                    <i class="fas fa-video"></i> Camera Config
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item active">
+                    <i class="fas fa-cogs"></i> Settings
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar glass-panel" style="margin-bottom: 20px;">
+                <h2 style="margin:0;font-size:1.4rem;"><i class="fas fa-sliders-h" style="color:var(--accent);"></i>
+                    Global System Settings</h2>
+                <div class="header-actions">
+                    <button class="btn-primary" onclick="alert('Settings Saved Successfully');"><i
+                            class="fas fa-save"></i> Save Changes</button>
+                </div>
+            </header>
+
+            <div class="settings-grid">
+                <!-- AI Module Settings -->
+                <div class="glass-panel settings-card">
+                    <h3 class="settings-title"><i class="fas fa-brain" style="color:#10b981;"></i> Core AI Parameters
+                    </h3>
+
+                    <div class="form-group">
+                        <label class="form-label">YOLO Model Version</label>
+                        <select class="form-control">
+                            <option>YOLOv8 Nano (Fastest)</option>
+                            <option selected>YOLOv8 Small (Balanced)</option>
+                            <option>YOLOv8 Medium (High Accuracy)</option>
+                            <option>YOLOv8 Large (Max Precision)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Detection Confidence Threshold</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="range" class="range-slider" min="10" max="100" value="45"
+                                oninput="this.nextElementSibling.innerText = this.value + '%'">
+                            <span style="min-width:40px; text-align:right;">45%</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Ambulance Emergency Priority Confidence</label>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <input type="range" class="range-slider" min="10" max="100" value="65"
+                                oninput="this.nextElementSibling.innerText = this.value + '%'">
+                            <span style="min-width:40px; text-align:right;">65%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Signal Timings -->
+                <div class="glass-panel settings-card">
+                    <h3 class="settings-title"><i class="fas fa-traffic-light" style="color:#f59e0b;"></i> Default
+                        Signal Timings</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Low Density Green Time (seconds)</label>
+                        <input type="number" class="form-control" value="15">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Medium Density Green Time (seconds)</label>
+                        <input type="number" class="form-control" value="30">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">High Density Green Time (seconds)</label>
+                        <input type="number" class="form-control" value="45">
+                    </div>
+                </div>
+
+                <!-- System Preferences -->
+                <div class="glass-panel settings-card">
+                    <h3 class="settings-title"><i class="fas fa-desktop" style="color:var(--purple);"></i> UI &
+                        Notifications</h3>
+
+                    <div class="switch-container">
+                        <div>
+                            <div style="font-weight:500;">Dark Mode Enforcement</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">Force dark theme across all
+                                system pages</div>
+                        </div>
+                        <label class="switch-label">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-container">
+                        <div>
+                            <div style="font-weight:500;">Voice Alerts</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">Synthesized voice alerts for
+                                emergencies</div>
+                        </div>
+                        <label class="switch-label">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="switch-container">
+                        <div>
+                            <div style="font-weight:500;">Automated Dispatch</div>
+                            <div style="font-size:0.8rem; color:var(--text-secondary);">Forward accident logs to
+                                ambulances automatically</div>
+                        </div>
+                        <label class="switch-label">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Integrations -->
+                <div class="glass-panel settings-card">
+                    <h3 class="settings-title"><i class="fas fa-link" style="color:#ef4444;"></i> Database &
+                        Integrations</h3>
+
+                    <div class="form-group">
+                        <label class="form-label">Map Data Provider API Key (Leaflet Base)</label>
+                        <input type="password" class="form-control" value="xxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Data Retention Policy</label>
+                        <select class="form-control">
+                            <option>Keep 7 days</option>
+                            <option selected>Keep 30 days</option>
+                            <option>Keep 90 days</option>
+                            <option>Never Delete</option>
+                        </select>
+                    </div>
+
+                    <button class="btn-primary"
+                        style="margin-top:10px; width:100%; background:var(--danger); border:none;"><i
+                            class="fas fa-trash"></i> Purge Historical Data</button>
+                </div>
+
+            </div>
+        </main>
+    </div>
+</body>
+
+</html>

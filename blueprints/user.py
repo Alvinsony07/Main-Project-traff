@@ -8,11 +8,23 @@ user_bp = Blueprint('user', __name__, url_prefix='/user')
 @user_bp.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
+        username = request.form.get('username', '').strip()
+        full_name = request.form.get('full_name', '').strip()
+        phone_number = request.form.get('phone_number', '').strip()
+        organization = request.form.get('organization', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
         
         if not username or len(username) < 3:
             flash('Username must be at least 3 characters')
+            return redirect(url_for('user.register'))
+
+        if not full_name:
+            flash('Full Name is required')
+            return redirect(url_for('user.register'))
+
+        if password != confirm_password:
+            flash('Passwords do not match')
             return redirect(url_for('user.register'))
         
         # Validate password strength
@@ -25,7 +37,13 @@ def register():
             flash('Username already exists')
             return redirect(url_for('user.register'))
             
-        new_user = User(username=username, role='user')
+        new_user = User(
+            username=username, 
+            full_name=full_name,
+            phone_number=phone_number,
+            organization=organization,
+            role='user'
+        )
         new_user.set_password(password)
         db.session.add(new_user)
         db.session.commit()

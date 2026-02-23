@@ -88,6 +88,13 @@ body::after {
     top: 1rem;
     height: calc(100vh - 2rem);
     overflow-y: auto;
+
+    /* Frame & Glow Effect */
+    background: var(--card-bg);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 0 35px rgba(59, 130, 246, 0.15), inset 0 0 15px rgba(59, 130, 246, 0.05);
+    backdrop-filter: blur(10px);
 }
 
 /* --- Scrollbar Customization --- */

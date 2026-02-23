@@ -412,6 +412,83 @@
                 gap: 2rem;
             }
         }
+
+        /* --- Click Transition Animations --- */
+        .btn-animated {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .btn-animated .btn-text-content {
+            display: inline-flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-animated.is-loading {
+            pointer-events: none;
+            color: transparent !important;
+        }
+
+        .btn-animated.is-loading .btn-text-content {
+            opacity: 0;
+            transform: translateX(-10px);
+        }
+
+        .btn-animated::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            opacity: 0;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            transition: all 0.3s ease;
+        }
+
+        .btn-animated.is-loading::after {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+            animation: btn-spin 0.8s ease-in-out infinite;
+        }
+
+        @keyframes btn-spin {
+            to {
+                transform: translate(-50%, -50%) scale(1) rotate(360deg);
+            }
+        }
+
+        /* Green Fill Animation inside Button */
+        .btn-animated::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: var(--success, #10b981);
+            z-index: 0;
+            transition: width 0.6s cubic-bezier(0.8, 0, 0.2, 1);
+        }
+
+        .btn-animated.is-loading::before {
+            width: 100%;
+        }
+
+        .btn-animated .btn-text-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Adjust spinner for this new style */
+        .btn-animated.is-loading .btn-text-content {
+            opacity: 0;
+        }
     </style>
 </head>
 
@@ -452,15 +529,21 @@
             <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
                 {% if user %}
                 <a href="{{ url_for('dashboard') if user.role == 'admin' else url_for('user.dashboard') }}"
-                    class="btn btn-primary" style="padding: 1rem 2.5rem; font-size: 1.1rem;">
-                    Launch Console <i class="fas fa-arrow-right" style="margin-left:8px;"></i>
+                    class="btn btn-primary btn-animated" style="padding: 1rem 2.5rem; font-size: 1.1rem;">
+                    <span class="btn-text-content">Launch Console <i class="fas fa-arrow-right"
+                            style="margin-left:8px;"></i></span>
                 </a>
                 {% else %}
-                <a href="{{ url_for('login') }}" class="btn btn-primary"
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-animated"
                     style="padding: 1rem 2.5rem; font-size: 1.1rem;">
-                    Access System <i class="fas fa-arrow-right" style="margin-left:8px;"></i>
+                    <span class="btn-text-content">Access System <i class="fas fa-arrow-right"
+                            style="margin-left:8px;"></i></span>
                 </a>
                 {% endif %}
+                <a href="{{ url_for('ambulance_portal') }}" class="btn btn-outline" target="_blank"
+                    style="padding: 1rem 2.5rem; font-size: 1.1rem; border-color: rgba(239, 68, 68, 0.5); color: #ef4444;">
+                    <i class="fas fa-truck-medical" style="margin-right:8px;"></i> Ambulance Unit
+                </a>
             </div>
 
             <div class="hero-stats">
@@ -564,6 +647,32 @@
                 const y = e.clientY - rect.top;
                 card.style.setProperty('--mouse-x', `${x}px`);
                 card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
+
+        // Setup green fill transition
+        document.querySelectorAll('.btn-animated').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                // Ignore middle clicks or combinations
+                if (e.button !== 0 || e.ctrlKey || e.shiftKey || e.metaKey || e.altKey || this.target === '_blank') return;
+
+                e.preventDefault();
+                const targetUrl = this.href;
+
+                // 1. Kick off the fill animation and spinner
+                this.classList.add('is-loading');
+
+                // 2. Wait for the green fill to reach the end (600ms match with CSS) or slightly longer
+                setTimeout(() => {
+                    // Start fading out the page for a smooth transition
+                    document.body.style.transition = 'opacity 0.2s ease';
+                    document.body.style.opacity = '0';
+
+                    // 3. Jump to the next page once faded
+                    setTimeout(() => {
+                        window.location.href = targetUrl;
+                    }, 200);
+                }, 700);
             });
         });
     </script>

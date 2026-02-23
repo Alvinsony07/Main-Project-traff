@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Vision AI | City Overview</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        .map-wrapper {
+            position: relative;
+            height: calc(100vh - 120px);
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #city-map {
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .map-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #fff;
+            width: 300px;
+        }
+
+        .pulse-marker {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        .pulse-marker.danger {
+            background: var(--danger);
+            box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        }
+
+        .pulse-marker.warning {
+            background: var(--warning);
+            box-shadow: 0 0 0 rgba(245, 158, 11, 0.4);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(var(--marker-rgb), 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 20px rgba(var(--marker-rgb), 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(var(--marker-rgb), 0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Side Navigation -->
+        <aside class="sidebar glass-panel">
+            <div class="logo-area">
+                <div
+                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
+                    <i class="fas fa-camera-retro"></i>
+                </div>
+                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
+                    AI</h2>
+            </div>
+            <div class="sidebar-scan-bar">
+                <div class="scan-glow"></div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="{{ url_for('dashboard') }}" class="nav-item">
+                    <i class="fas fa-th-large"></i> Command Center
+                </a>
+                <a href="{{ url_for('city_overview') }}" class="nav-item active">
+                    <i class="fas fa-map-marked-alt"></i> City Overview
+                </a>
+                <a href="{{ url_for('analysis') }}" class="nav-item">
+                    <i class="fas fa-chart-line"></i> Analytics
+                </a>
+                <a href="{{ url_for('reports') }}" class="nav-item">
+                    <i class="fas fa-file-pdf"></i> Reports
+                </a>
+                <a href="{{ url_for('camera_config') }}" class="nav-item">
+                    <i class="fas fa-video"></i> Camera Config
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cogs"></i> Settings
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div
+                    style="font-size:0.6rem;color:var(--text-secondary);letter-spacing:0.5px;padding:0.6rem 1rem 0.4rem;opacity:0.6;">
+                    TRAFFIC VISION AI v3.0</div>
+                <a href="{{ url_for('logout') }}" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar glass-panel" style="margin-bottom: 20px;">
+                <h2 style="margin:0;font-size:1.4rem;"><i class="fas fa-globe-asia" style="color:var(--accent);"></i>
+                    City-Wide Surveillance</h2>
+            </header>
+
+            <div class="glass-panel map-wrapper">
+                <div id="city-map"></div>
+                <div class="map-overlay">
+                    <h3
+                        style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:15px;">
+                        <i class="fas fa-chart-pie"></i> Map Status
+                    </h3>
+
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Green Nodes (Low Traffic)</span>
+                        <strong style="color:var(--success)" id="green-count">0</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span>Yellow Nodes (Medium)</span>
+                        <strong style="color:var(--warning)" id="yellow-count">0</strong>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                        <span>Red Nodes (High/Accident)</span>
+                        <strong style="color:var(--danger)" id="red-count">0</strong>
+                    </div>
+
+                    <button class="btn-primary" style="width:100%;" onclick="resetMapView();">Reset View</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- Map Init ---
+        const map = L.map('city-map').setView([20.5937, 78.9629], 5); // Broad India default before geolocation loads
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+
+        const markers = {};
+        let junctions = [];
+        let userLat = null, userLng = null;
+
+        // Junction names for system labeling
+        const junctionNames = [
+            'Intersection Alpha (Lane 1)',
+            'Intersection Beta (Lane 2)',
+            'Intersection Gamma (Lane 3)',
+            'Intersection Delta (Lane 4)'
+        ];
+
+        // Offsets in degrees (~100-400m spread) to place 4 junctions around real location
+        const offsets = [
+            { dlat: 0.003, dlng: 0.003 },
+            { dlat: 0.003, dlng: -0.003 },
+            { dlat: -0.003, dlng: 0.003 },
+            { dlat: -0.003, dlng: -0.003 }
+        ];
+
+        function initMarkersAtLocation(lat, lng) {
+            userLat = lat;
+            userLng = lng;
+
+            // Remove any old markers
+            Object.values(markers).forEach(m => map.removeLayer(m));
+            Object.keys(markers).forEach(k => delete markers[k]);
+
+            junctions = offsets.map((o, i) => ({
+                id: i,
+                lat: lat + o.dlat,
+                lng: lng + o.dlng,
+                name: junctionNames[i]
+            }));
+
+            junctions.forEach(j => {
+                const icon = L.divIcon({
+                    className: 'custom-div-icon',
+                    html: `<div class="pulse-marker" style="background: #94a3b8; --marker-rgb: 148, 163, 184;"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                markers[j.id] = L.marker([j.lat, j.lng], { icon: icon }).addTo(map)
+                    .bindPopup(`<strong style="color:#000;">${j.name}</strong><br><span style="color:#333;">Connecting to live feed...</span>`);
+            });
+
+            map.flyTo([lat, lng], 15, { animate: true, duration: 1.5 });
+            updateCityMap();
+        }
+
+        function resetMapView() {
+            if (userLat && userLng) {
+                map.flyTo([userLat, userLng], 15, { animate: true, duration: 2 });
+            }
+        }
+
+        // --- Geolocation: detect real user location ---
+        const locatingBanner = document.createElement('div');
+        locatingBanner.id = 'loc-banner';
+        locatingBanner.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#60a5fa;padding:8px 20px;border-radius:8px;font-size:0.8rem;z-index:1000;pointer-events:none;letter-spacing:1px;';
+        locatingBanner.innerHTML = '<i class="fas fa-satellite-dish"></i> &nbsp; Acquiring GPS coordinates...';
+        document.getElementById('city-map').appendChild(locatingBanner);
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    locatingBanner.remove();
+                    initMarkersAtLocation(pos.coords.latitude, pos.coords.longitude);
+                },
+                (err) => {
+                    // Geolocation denied or failed — fall back to IP-based detection
+                    locatingBanner.innerHTML = '<i class="fas fa-map-pin"></i> &nbsp; GPS denied — using network location...';
+                    fetch('https://ipapi.co/json/')
+                        .then(r => r.json())
+                        .then(d => {
+                            locatingBanner.remove();
+                            initMarkersAtLocation(d.latitude, d.longitude);
+                        })
+                        .catch(() => {
+                            // Final fallback: use a sensible default
+                            locatingBanner.remove();
+                            initMarkersAtLocation(10.8505, 76.2711); // Kerala, India default
+                        });
+                },
+                { timeout: 8000 }
+            );
+        } else {
+            locatingBanner.innerHTML = '<i class="fas fa-exclamation-triangle"></i> &nbsp; Geolocation not supported';
+            setTimeout(() => locatingBanner.remove(), 3000);
+            initMarkersAtLocation(10.8505, 76.2711);
+        }
+
+        // --- Real-time Status from /api/status ---
+        function updateCityMap() {
+            fetch('/api/status')
+                .then(res => res.json())
+                .then(data => {
+                    let greenNodes = 0;
+                    let yellowNodes = 0;
+                    let redNodes = 0;
+
+                    const states = data.signal_status.states;
+                    const ambulance = data.signal_status.ambulance_mode;
+                    const lanes = data.lane_data;
+
+                    for (let i = 0; i < 4; i++) {
+                        let statusColor = '#10b981';
+                        let rgb = '16, 185, 129';
+                        let label = 'Low Traffic (Green)';
+
+                        const laneInfo = lanes[i.toString()];
+                        const count = laneInfo ? laneInfo.count : 0;
+                        const density = laneInfo ? laneInfo.density : 'LOW';
+
+                        if (ambulance) {
+                            statusColor = '#ef4444';
+                            rgb = '239, 68, 68';
+                            label = 'EMERGENCY OVERRIDE';
+                            redNodes++;
+                        } else if (density === 'HIGH' || states[i] === 'RED') {
+                            statusColor = '#ef4444';
+                            rgb = '239, 68, 68';
+                            label = 'High Traffic (Red)';
+                            redNodes++;
+                        } else if (density === 'MEDIUM' || states[i] === 'YELLOW') {
+                            statusColor = '#f59e0b';
+                            rgb = '245, 158, 11';
+                            label = 'Medium Traffic (Yellow)';
+                            yellowNodes++;
+                        } else {
+                            greenNodes++;
+                        }
+
+                        if (markers[i]) {
+                            const newIcon = L.divIcon({
+                                className: 'custom-div-icon',
+                                html: `<div class="pulse-marker" style="background: ${statusColor}; --marker-rgb: ${rgb};"></div>`,
+                                iconSize: [20, 20],
+                                iconAnchor: [10, 10]
+                            });
+                            markers[i].setIcon(newIcon);
+                            markers[i].setPopupContent(
+                                `<strong style="color:#000;">${junctions[i] ? junctions[i].name : 'Lane ' + (i + 1)}</strong><br><span style="color:#333;">Status: ${label}<br>Vehicles Detected: ${count}</span>`
+                            );
+                        }
+                    }
+
+                    document.getElementById('green-count').innerText = greenNodes;
+                    document.getElementById('yellow-count').innerText = yellowNodes;
+                    document.getElementById('red-count').innerText = redNodes;
+                })
+                .catch(err => console.error('Error fetching status:', err));
+        }
+
+        // Poll every 2 seconds
+        setInterval(updateCityMap, 2000);
+    </script>
+</body>
+
+</html>

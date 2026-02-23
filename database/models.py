@@ -7,6 +7,9 @@ import os
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    full_name = db.Column(db.String(150), nullable=True)
+    phone_number = db.Column(db.String(20), nullable=True)
+    organization = db.Column(db.String(150), nullable=True)
     password_hash = db.Column(db.String(256), nullable=False)
     role = db.Column(db.String(20), default='user')  # 'admin' or 'user'
     password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)

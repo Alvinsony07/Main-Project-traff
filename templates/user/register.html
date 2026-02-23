@@ -5,114 +5,154 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Traffic Vision User</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --primary: #2563eb;
-            --background: #0f172a;
-            --surface: #1e293b;
-            --text: #f8fafc;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--background);
-            color: var(--text);
+        .login-wrapper {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .card {
-            background: var(--surface);
             padding: 2rem;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-card {
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
+            padding: 2.5rem;
             text-align: center;
+            position: relative;
         }
 
-        h2 {
+        .logo-large {
             margin-bottom: 2rem;
-        }
-
-        input {
-            width: 100%;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            background: #334155;
-            border: 1px solid #475569;
-            border-radius: 0.5rem;
             color: white;
-            box-sizing: border-box;
-            /* Fix for width issue */
-        }
-
-        button {
-            width: 100%;
-            padding: 0.75rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        .links {
-            margin-top: 1.5rem;
-            font-size: 0.875rem;
-        }
-
-        a {
-            color: #60a5fa;
+            display: block;
             text-decoration: none;
+            cursor: pointer;
         }
 
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .alert {
-            background: #ef4444;
-            color: white;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
+        .logo-large i {
+            font-size: 3rem;
+            color: var(--accent);
             margin-bottom: 1rem;
+            filter: drop-shadow(0 0 15px var(--accent-dim));
+        }
+
+        .logo-large h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .input-group label {
+            text-align: left;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .flash-msg {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .flash-msg.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid #ef4444;
         }
     </style>
 </head>
 
 <body>
-    <div class="card">
-        <h2>Create Account</h2>
+    <div class="login-wrapper">
+        <div class="login-card glass-panel">
+            <a href="{{ url_for('index') }}" class="logo-large">
+                <i class="fas fa-camera-retro"></i>
+                <h1>Traffic Vision AI</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 500;">
+                    USER REGISTRATION
+                </p>
+            </a>
 
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-        {% for message in messages %}
-        <div class="alert">{{ message }}</div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            {% for message in messages %}
+            <div class="flash-msg error">
+                <i class="fas fa-exclamation-circle"></i> {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-        <form method="POST">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
-            <button type="submit">Sign Up</button>
-        </form>
+            <form method="POST" id="registerForm">
+                <div class="input-group">
+                    <label>Access ID (Username)</label>
+                    <input type="text" name="username" placeholder="Choose a username" required minlength="3"
+                        autocomplete="off">
+                </div>
 
-        <div class="links">
-            <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" name="full_name" placeholder="Your full name" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Contact Number</label>
+                    <input type="tel" name="phone_number" placeholder="Phone Number" required pattern="[0-9]{10,15}"
+                        title="Enter a valid phone number (10-15 digits)">
+                </div>
+
+                <div class="input-group">
+                    <label>Organization / Department</label>
+                    <input type="text" name="organization" placeholder="Optional">
+                </div>
+
+                <div class="input-group">
+                    <label>Passcode</label>
+                    <input type="password" id="password" name="password" placeholder="••••••••" required minlength="6">
+                </div>
+
+                <div class="input-group">
+                    <label>Confirm Passcode</label>
+                    <input type="password" id="confirm_password" name="confirm_password" placeholder="••••••••" required
+                        minlength="6">
+                </div>
+
+                <button type="submit" class="btn-primary" style="margin-top: 1.5rem; width: 100%;">
+                    <i class="fas fa-user-plus"></i> CREATE ACCOUNT
+                </button>
+            </form>
+
+            <div style="margin-top: 2rem; text-align: center;">
+                <a href="{{ url_for('login') }}"
+                    style="color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; transition: 0.2s;">
+                    <i class="fas fa-arrow-left"></i> Back to Login
+                </a>
+            </div>
         </div>
     </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', function (e) {
+            var pwd = document.getElementById('password').value;
+            var cpwd = document.getElementById('confirm_password').value;
+
+            if (pwd !== cpwd) {
+                e.preventDefault();
+                alert('Passwords do not match. Please try again.');
+            }
+        });
+    </script>
 </body>
 
 </html>

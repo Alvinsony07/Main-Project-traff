@@ -107,6 +107,30 @@ def analysis():
         return redirect(url_for('login'))
     return render_template('analysis.html')
 
+@app.route('/city_overview')
+def city_overview():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('city_overview.html')
+
+@app.route('/settings')
+def settings():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('settings.html')
+
+@app.route('/reports')
+def reports():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('reports.html')
+
+@app.route('/camera_config')
+def camera_config():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('camera_config.html')
+
 @app.route('/video_feed/<int:lane_id>')
 def video_feed(lane_id):
     """Video streaming route. Put this in the src attribute of an img tag."""

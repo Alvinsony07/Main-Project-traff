@@ -47,11 +47,20 @@
                 <a href="{{ url_for('dashboard') }}" class="nav-item active">
                     <i class="fas fa-th-large"></i> Command Center
                 </a>
+                <a href="{{ url_for('city_overview') }}" class="nav-item">
+                    <i class="fas fa-map-marked-alt"></i> City Overview
+                </a>
                 <a href="{{ url_for('analysis') }}" class="nav-item">
                     <i class="fas fa-chart-line"></i> Analytics
                 </a>
-                <a href="{{ url_for('ambulance_portal') }}" class="nav-item" target="_blank">
-                    <i class="fas fa-truck-medical"></i> Ambulance Unit
+                <a href="{{ url_for('reports') }}" class="nav-item">
+                    <i class="fas fa-file-pdf"></i> Reports
+                </a>
+                <a href="{{ url_for('camera_config') }}" class="nav-item">
+                    <i class="fas fa-video"></i> Camera Config
+                </a>
+                <a href="{{ url_for('settings') }}" class="nav-item">
+                    <i class="fas fa-cogs"></i> Settings
                 </a>
                 <div class="nav-divider"></div>
                 <div class="control-group">
