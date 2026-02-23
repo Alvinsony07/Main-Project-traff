@@ -4,9 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traffic Nexus | Secure Login</title>
+    <title>Traffic Vision AI | Secure Login</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .login-wrapper {
@@ -14,7 +15,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 50% 50%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
         }
 
         .login-card {
@@ -49,10 +49,10 @@
     <div class="login-wrapper">
         <div class="login-card glass-panel">
             <div class="logo-large">
-                <i class="fas fa-traffic-light"></i>
-                <h1>TRAFFIC<span style="color: var(--accent);">NEXUS</span></h1>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 300;">
-                    INTELLIGENT CONTROL SYSTEM</p>
+                <i class="fas fa-camera-retro"></i>
+                <h1 style="letter-spacing: -0.5px;">Traffic Vision AI</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 500;">
+                    AUTONOMOUS MANAGEMENT</p>
             </div>
 
             {% with messages = get_flashed_messages() %}

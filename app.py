@@ -39,9 +39,10 @@ signal_thread.start()
 
 @app.route('/')
 def index():
+    user = None
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
-    return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+    return render_template('index.html', user=user)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

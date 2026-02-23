@@ -1,36 +1,74 @@
 :root {
-    --bg-dark: #0f172a;
-    --card-bg: rgba(30, 41, 59, 0.65);
-    --sidebar-bg: rgba(15, 23, 42, 0.85);
-    --card-border: rgba(255, 255, 255, 0.08);
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
+    --bg-dark: #070B14;
+    --card-bg: rgba(22, 28, 45, 0.6);
+    --sidebar-bg: rgba(22, 28, 45, 0.85);
+    --card-border: rgba(62, 76, 105, 0.4);
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
 
-    /* Nexus Colors */
-    --accent: #38bdf8;
-    /* Sky Blue */
-    --accent-dim: rgba(56, 189, 248, 0.1);
+    /* Traffic Vision AI Colors */
+    --accent: #3B82F6;
+    /* Sky Blue -> Accent Blue */
+    --accent-dim: rgba(59, 130, 246, 0.1);
     --success: #10b981;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --purple: #8b5cf6;
+    --purple: #8B5CF6;
+    --gradient-primary: linear-gradient(135deg, var(--accent), var(--purple));
 
-    --font-main: 'Outfit', sans-serif;
+    --font-main: 'Inter', sans-serif;
 }
 
 body {
     margin: 0;
     font-family: var(--font-main);
     background-color: var(--bg-dark);
-    /* Cyberpunk-ish gradient background */
-    background-image:
-        radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15) 0%, transparent 40%);
     color: var(--text-primary);
-    /* Allow natural scrolling */
     min-height: 100vh;
     overflow-x: hidden;
-    /* Prevent horizontal scroll only */
+    position: relative;
+}
+
+/* Abstract Background Effects */
+body::before,
+body::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.15;
+    z-index: -1;
+    animation: pulseGlow 10s infinite alternate;
+    pointer-events: none;
+}
+
+body::before {
+    top: -10%;
+    left: -10%;
+    width: 50vw;
+    height: 50vw;
+    background: var(--accent);
+}
+
+body::after {
+    bottom: -20%;
+    right: -10%;
+    width: 60vw;
+    height: 60vw;
+    background: var(--purple);
+    animation-delay: 5s;
+}
+
+@keyframes pulseGlow {
+    0% {
+        transform: scale(1);
+        opacity: 0.1;
+    }
+
+    100% {
+        transform: scale(1.1);
+        opacity: 0.2;
+    }
 }
 
 /* --- Layout --- */
