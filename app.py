@@ -47,16 +47,21 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        username = request.form.get('username')
+        password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         
         if user and user.check_password(password):
             session['user_id'] = user.id
-            if user.role == 'admin':
-                return redirect(url_for('dashboard'))
-            else:
-                return redirect(url_for('user.dashboard'))
+            redirect_url = url_for('dashboard') if user.role == 'admin' else url_for('user.dashboard')
+            
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'success': True, 'redirect': redirect_url})
+            return redirect(redirect_url)
+            
+        if request.headers.get('Accept') == 'application/json':
+            return jsonify({'success': False, 'message': 'Invalid credentials'})
+            
         flash('Invalid credentials')
     return render_template('login.html')
 

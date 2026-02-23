@@ -17,7 +17,7 @@
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         .map-section {
-            height: 300px;
+            height: 500px;
             width: 100%;
             border-radius: 12px;
             z-index: 1;
@@ -194,13 +194,132 @@
     </div>
 
     <!-- Live Map Section (Below videos) -->
-    <div class="glass-panel" style="margin-top: 20px; padding: 20px;">
-        <h3 style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
-            <i class="fas fa-map-marked-alt" style="color: var(--primary);"></i> Live Incident Map
-            <span style="font-size: 0.8rem; opacity: 0.6; font-weight: normal;">(Real-time Updates)</span>
-        </h3>
-        <div id="admin-map" class="map-section"></div>
+    <div class="glass-panel" style="margin-top: 20px; padding: 20px; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i class="fas fa-map-marked-alt" style="color: var(--accent);"></i> Live Incident Map
+                <span
+                    style="font-size: 0.8rem; opacity: 0.6; font-weight: normal; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px;">Real-time</span>
+            </h3>
+            <div
+                style="display: flex; align-items: center; gap: 12px; background: rgba(0,0,0,0.3); padding: 6px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
+                <!-- Map Type Toggle -->
+                <i class="fas fa-satellite" id="map-type-icon"
+                    style="color: var(--text-secondary); transition: 0.3s;"></i>
+                <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Satellite</span>
+                <label class="custom-toggle" style="margin-right: 15px;">
+                    <input type="checkbox" id="map-type-toggle">
+                    <span class="custom-slider"></span>
+                </label>
+
+                <!-- Track Location Toggle -->
+                <i class="fas fa-crosshairs" id="locate-icon"
+                    style="color: var(--text-secondary); transition: 0.3s;"></i>
+                <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Track</span>
+                <label class="custom-toggle">
+                    <input type="checkbox" id="locate-toggle-btn">
+                    <span class="custom-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Add dynamic map overlay -->
+        <div style="position: relative;">
+            <div id="admin-map" class="map-section"
+                style="border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; box-shadow: inset 0 0 20px rgba(0,0,0,0.5);">
+            </div>
+            <!-- Innovative Scanner UI Overlay -->
+            <div id="map-scanner"
+                style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(to bottom, transparent 95%, rgba(59,130,246,0.5) 100%); background-size: 100% 200%; pointer-events: none; z-index: 1000; display: none; border-radius: 12px; animation: scanMap 1.5s infinite linear;">
+            </div>
+        </div>
     </div>
+
+    <!-- Styles for the new features -->
+    <style>
+        @keyframes scanMap {
+            0% {
+                background-position: 0% -100%;
+            }
+
+            100% {
+                background-position: 0% 100%;
+            }
+        }
+
+        @keyframes locPulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(3.5);
+                opacity: 0;
+            }
+        }
+
+        .custom-toggle {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+
+        .custom-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .custom-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .custom-slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-secondary);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.custom-slider {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: var(--success);
+            box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.2);
+        }
+
+        input:checked+.custom-slider:before {
+            transform: translateX(20px);
+            background-color: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .loc-marker-pulse {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            border-radius: 50%;
+            border: 2px solid var(--accent);
+            animation: locPulse 1.5s infinite cubic-bezier(0.215, 0.610, 0.355, 1);
+        }
+    </style>
 
     <script>
         // State
@@ -293,6 +412,7 @@
                         const pill = document.getElementById(`signal-pill-${i}`);
                         const dot = document.getElementById(`signal-dot-${i}`);
                         const text = document.getElementById(`signal-text-${i}`);
+                        const laneCard = document.getElementById(`lane-${i}`);
 
                         // Reset classes
                         pill.className = 'signal-pill';
@@ -301,6 +421,13 @@
                         pill.classList.add(state);
                         dot.classList.add(state);
                         text.innerText = state;
+
+                        // Active Green Frame Logic
+                        if (state === 'GREEN') {
+                            laneCard.classList.add('active-green-lane');
+                        } else {
+                            laneCard.classList.remove('active-green-lane');
+                        }
 
                         // Stats
                         const d = lanes[i.toString()];
@@ -394,10 +521,35 @@
 
         // --- Map Logic ---
         var map = L.map('admin-map').setView([12.9716, 77.5946], 12);
-        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+
+        // Define base layers
+        var standardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
             maxZoom: 19
-        }).addTo(map);
+        });
+
+        // Premium Esri World Imagery Satellite Map
+        var satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxZoom: 19
+        });
+
+        // Add default visible layer
+        standardLayer.addTo(map);
+
+        // Map Type Toggle Logic
+        document.getElementById('map-type-toggle').addEventListener('change', function () {
+            var icon = document.getElementById('map-type-icon');
+            if (this.checked) {
+                map.removeLayer(standardLayer);
+                satelliteLayer.addTo(map);
+                icon.style.color = 'var(--accent)';
+            } else {
+                map.removeLayer(satelliteLayer);
+                standardLayer.addTo(map);
+                icon.style.color = 'var(--text-secondary)';
+            }
+        });
 
         var markers = {}; // id -> marker
 
@@ -425,6 +577,86 @@
                 }
             });
         }
+
+        // --- Continuous Location Tracking Toggle ---
+        document.getElementById('locate-toggle-btn').addEventListener('change', function () {
+            var isChecked = this.checked;
+            var scanner = document.getElementById('map-scanner');
+            var icon = document.getElementById('locate-icon');
+
+            // Clean up previous listeners
+            map.off('locationfound');
+            map.off('locationerror');
+
+            if (isChecked) {
+                // Turn ON Tracking
+                icon.className = 'fas fa-spinner fa-spin';
+                icon.style.color = 'var(--accent)';
+                scanner.style.display = 'block';
+
+                // watch: true keeps tracking the user's live position seamlessly
+                map.locate({ watch: true, setView: true, maxZoom: 16 });
+
+                map.on('locationfound', function (e) {
+                    var radius = e.accuracy / 2;
+
+                    // Remove previous markers/circles
+                    if (window.userMarker) map.removeLayer(window.userMarker);
+                    if (window.userCircle) map.removeLayer(window.userCircle);
+
+                    // Add premium avatar/location icon
+                    const customLocIcon = L.divIcon({
+                        className: 'custom-loc-icon',
+                        html: `<div style="width: 16px; height: 16px; background: #fff; border-radius: 50%; border: 4px solid var(--accent); box-shadow: 0 0 15px var(--accent); position: relative; z-index: 10;">
+                                   <div class="loc-marker-pulse"></div>
+                               </div>`,
+                        iconSize: [24, 24],
+                        iconAnchor: [12, 12]
+                    });
+
+                    window.userMarker = L.marker(e.latlng, { icon: customLocIcon }).addTo(map)
+                        .bindPopup("<div style='text-align:center;'><b>Command Center</b><br>Accuracy: " + Math.round(radius) + " meters</div>");
+
+                    window.userCircle = L.circle(e.latlng, radius, {
+                        color: 'var(--accent)',
+                        fillColor: 'var(--accent)',
+                        fillOpacity: 0.1,
+                        weight: 1,
+                        dashArray: '4, 4'
+                    }).addTo(map);
+
+                    // Reset UI (stop spinning, show success icon)
+                    icon.className = 'fas fa-crosshairs';
+                    icon.style.color = 'var(--success)';
+                    scanner.style.display = 'none'; // Only scan during initial lock
+                });
+
+                map.on('locationerror', function (e) {
+                    alert("Location access denied or unavailable.");
+                    icon.className = 'fas fa-exclamation-triangle';
+                    icon.style.color = 'var(--danger)';
+                    scanner.style.display = 'none';
+                    document.getElementById('locate-toggle-btn').checked = false; // reset toggle visually
+                });
+            } else {
+                // Turn OFF Tracking
+                map.stopLocate();
+
+                if (window.userMarker) {
+                    map.removeLayer(window.userMarker);
+                    window.userMarker = null;
+                }
+                if (window.userCircle) {
+                    map.removeLayer(window.userCircle);
+                    window.userCircle = null;
+                }
+
+                // Reset UI
+                icon.className = 'fas fa-crosshairs';
+                icon.style.color = 'var(--text-secondary)';
+                scanner.style.display = 'none';
+            }
+        });
     </script>
 </body>
 

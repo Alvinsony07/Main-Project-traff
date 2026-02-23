@@ -91,6 +91,72 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.querySelector('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const card = document.querySelector('.login-card');
+            const originalContent = btn.innerHTML;
+
+            // Start Authentication Animation
+            btn.innerHTML = '<i class="fas fa-fingerprint scan-animation"></i> AUTHENTICATING...';
+            btn.style.pointerEvents = 'none';
+            card.classList.remove('card-auth-error', 'card-auth-success');
+            card.classList.add('card-auth-loading');
+
+            const formData = new FormData(e.target);
+            try {
+                const response = await fetch("{{ url_for('login') }}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                // If the redirect happens directly (e.g., the python code wasn't hit or it's misconfigured), 
+                // it might return HTML instead of JSON. 
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                if (!isJson) {
+                    // Fallback to old fashioned submission if something goes wrong
+                    e.target.submit();
+                    return;
+                }
+
+                const data = await response.json();
+                card.classList.remove('card-auth-loading');
+
+                if (data.success) {
+                    card.classList.add('card-auth-success');
+                    btn.innerHTML = '<i class="fas fa-check-circle"></i> AUTHENTICATED';
+                    btn.style.backgroundColor = 'var(--success)';
+                    btn.style.color = '#ffffff';
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    card.classList.add('card-auth-error');
+                    btn.innerHTML = '<i class="fas fa-times-circle"></i> INVALID CREDENTIALS';
+                    btn.style.backgroundColor = 'var(--danger)';
+                    btn.style.color = '#ffffff';
+                    btn.classList.add('shake');
+
+                    setTimeout(() => {
+                        card.classList.remove('card-auth-error');
+                        btn.innerHTML = originalContent;
+                        btn.style.backgroundColor = '';
+                        btn.style.color = '';
+                        btn.classList.remove('shake');
+                        btn.style.pointerEvents = 'auto';
+                    }, 2000);
+                }
+            } catch (err) {
+                // If network fails, submit form normally
+                e.target.submit();
+            }
+        });
+    </script>
 </body>
 
 </html>
