@@ -727,18 +727,29 @@
             flex-direction: column;
             position: relative;
             opacity: 0;
-            transform: translateY(50px) scale(0.8);
-            filter: blur(6px);
+            transform: translateY(44px) scale(0.85);
+            filter: blur(8px);
             transition:
-                opacity 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
-                transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
-                filter 0.6s ease;
+                opacity 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.85s cubic-bezier(0.22, 1, 0.36, 1),
+                filter 0.75s ease;
         }
 
         .arch-node-wrap.revealed {
             opacity: 1;
             transform: translateY(0) scale(1);
             filter: blur(0);
+        }
+
+        /* graceful exit — JS adds .exiting before stripping classes */
+        .arch-node-wrap.exiting {
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            filter: blur(4px);
+            transition:
+                opacity 0.4s ease-in,
+                transform 0.4s ease-in,
+                filter 0.35s ease-in;
         }
 
         /* ── Ambient glow halo behind card ── */
@@ -760,20 +771,20 @@
 
         .arch-node-wrap.active .arch-node-halo {
             opacity: 0.18;
-            animation: haloBreath 3s ease-in-out infinite;
+            animation: haloBreath 4s ease-in-out infinite;
         }
 
         @keyframes haloBreath {
 
             0%,
             100% {
-                opacity: 0.15;
+                opacity: 0.13;
                 transform: scale(1);
             }
 
             50% {
-                opacity: 0.25;
-                transform: scale(1.12);
+                opacity: 0.24;
+                transform: scale(1.14);
             }
         }
 
@@ -797,9 +808,9 @@
                 inset 0 1px 0 rgba(255, 255, 255, 0.08);
             cursor: default;
             transition:
-                border-color 0.5s ease,
-                box-shadow 0.5s ease,
-                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+                border-color 0.65s ease,
+                box-shadow 0.65s ease,
+                transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
             overflow: hidden;
         }
 
@@ -1078,7 +1089,7 @@
                     var(--node-color-to, #a78bfa));
             border-radius: 3px;
             box-shadow: 0 0 8px 1px var(--node-color-to, #a78bfa);
-            transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: width 0.95s cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
 
         .arch-connector.beaming .connector-fill {
@@ -1154,70 +1165,14 @@
             color: rgba(167, 139, 250, 0.9);
         }
 
-        /* ── Replay / Restart strip ── */
+        /* ── Pipeline active strip ── */
         .arch-bottom-strip {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1.2rem;
-            margin-top: 0.5rem;
-            min-height: 52px;
-            flex-wrap: wrap;
-        }
-
-        /* live packet counter */
-        .arch-packet-counter {
-            font-size: 0.72rem;
-            font-family: 'JetBrains Mono', 'Fira Code', monospace;
-            font-weight: 600;
-            color: rgba(96, 165, 250, 0.85);
-            background: rgba(96, 165, 250, 0.08);
-            border: 1px solid rgba(96, 165, 250, 0.2);
-            border-radius: 20px;
-            padding: 3px 12px;
-            letter-spacing: 0.5px;
-            opacity: 0;
-            transform: translateY(6px);
-            transition: opacity 0.4s ease, transform 0.4s ease;
-            white-space: nowrap;
-        }
-
-        .arch-packet-counter.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .arch-replay-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 0.6rem 1.5rem;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            color: var(--text-muted);
-            border-radius: 50px;
-            font-size: 0.82rem;
-            font-weight: 500;
-            font-family: 'Inter', sans-serif;
-            cursor: pointer;
-            transition: all 0.3s;
-            opacity: 0;
-            transform: translateY(10px);
-            pointer-events: none;
-            backdrop-filter: blur(8px);
-        }
-
-        .arch-replay-btn.visible {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
-
-        .arch-replay-btn:hover {
-            background: rgba(59, 130, 246, 0.08);
-            border-color: rgba(59, 130, 246, 0.4);
-            color: var(--accent-blue);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+            gap: 0.75rem;
+            margin-top: 1.2rem;
+            min-height: 40px;
         }
 
         .arch-status-dot {
@@ -1226,9 +1181,9 @@
             border-radius: 50%;
             background: #10B981;
             box-shadow: 0 0 8px #10B981;
-            animation: statusPulse 2s ease-in-out infinite;
             opacity: 0;
-            transition: opacity 0.4s;
+            transition: opacity 0.5s 0.1s;
+            animation: statusPulse 2.2s ease-in-out infinite;
         }
 
         .arch-status-dot.visible {
@@ -1236,11 +1191,12 @@
         }
 
         .arch-status-label {
-            font-size: 0.75rem;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
             color: #10B981;
-            font-weight: 500;
             opacity: 0;
-            transition: opacity 0.4s;
+            transition: opacity 0.5s 0.15s;
         }
 
         .arch-status-label.visible {
@@ -1981,14 +1937,10 @@
 
             </div><!-- /arch-chain -->
 
-            <!-- Bottom status strip -->
+            <!-- Pipeline status -->
             <div class="arch-bottom-strip">
                 <div class="arch-status-dot" id="arch-status-dot"></div>
                 <span class="arch-status-label" id="arch-status-label">Pipeline Active</span>
-                <span class="arch-packet-counter" id="arch-packet-counter"></span>
-                <button class="arch-replay-btn" id="arch-replay-btn" onclick="replayArchChain()">
-                    <i class="fas fa-redo-alt"></i> Restart
-                </button>
             </div>
 
         </section>
@@ -2202,106 +2154,120 @@
         });
 
         // ══════════════════════════════════════════════════
-        //  ARCHITECTURE STACK — Premium Chain Animation v3
+        //  ARCHITECTURE STACK — Bidirectional Scroll v4
+        //  Plays on scroll-in (both down + up). Resets cleanly
+        //  on scroll-out so the next entry always feels fresh.
         // ══════════════════════════════════════════════════
         const NODES = 4;
-        const NODE_DELAY = 400;   // ms stagger between nodes
-        const GLOW_AFTER = 260;   // ms after reveal  → activate glow
-        const BEAM_AFTER = 180;   // ms after glow    → fire beam fill
-        const LIVE_AFTER = 780;   // ms after beam    → start particles
-        let archPlayed = false;
-        let packetTimer = null;
-        let packetCount = 0;
+        const NODE_DELAY = 320;   // tighter stagger for snappier feel
+        const GLOW_AFTER = 200;   // ms after reveal — glow
+        const BEAM_AFTER = 160;   // ms after glow   — beam fill
+        const LIVE_AFTER = 850;   // ms after beam   — particles (after beam solid)
+        const EXIT_FADE = 420;   // ms CSS fade-out before hard reset
 
-        function launchArchChain() {
-            if (archPlayed) return;
-            archPlayed = true;
+        let archTimers = [];
+        let archRunning = false;
+        let exitTimer = null;
+
+        // Hard reset — called after exit fade completes
+        function archHardReset() {
+            archTimers.forEach(id => clearTimeout(id));
+            archTimers = [];
+            archRunning = false;
 
             for (let i = 0; i < NODES; i++) {
-                const baseDelay = i * NODE_DELAY;
-                const nodeEl = document.getElementById(`arch-node-${i}`);
+                const n = document.getElementById(`arch-node-${i}`);
+                if (n) n.classList.remove('revealed', 'active', 'exiting');
+                if (i < NODES - 1) {
+                    const c = document.getElementById(`arch-conn-${i}`);
+                    if (c) {
+                        c.classList.remove('revealed', 'beaming', 'live');
+                        void c.offsetWidth;
+                    }
+                }
+            }
+            document.getElementById('arch-status-dot').classList.remove('visible');
+            document.getElementById('arch-status-label').classList.remove('visible');
+        }
 
-                // 1 — fly-in (blur + translateY)
-                setTimeout(() => nodeEl.classList.add('revealed'), baseDelay);
+        // Graceful exit — CSS fade, then hard reset
+        function archExit() {
+            archTimers.forEach(id => clearTimeout(id));
+            archTimers = [];
+            archRunning = false;
 
-                // 2 — colour glow + icon pop
-                setTimeout(() => {
-                    nodeEl.classList.add('active');
+            for (let i = 0; i < NODES; i++) {
+                const n = document.getElementById(`arch-node-${i}`);
+                if (n && (n.classList.contains('revealed') || n.classList.contains('active'))) {
+                    n.classList.add('exiting');
+                }
+            }
+            document.getElementById('arch-status-dot').classList.remove('visible');
+            document.getElementById('arch-status-label').classList.remove('visible');
+            exitTimer = setTimeout(archHardReset, EXIT_FADE);
+        }
 
-                    // 3 — fire connector beam
+        function archPlay() {
+            if (archRunning) return;
+            if (exitTimer) { clearTimeout(exitTimer); exitTimer = null; }
+            archHardReset();
+            archRunning = true;
+
+            const push = (fn, delay) => archTimers.push(setTimeout(fn, delay));
+
+            for (let i = 0; i < NODES; i++) {
+                const base = i * NODE_DELAY;
+
+                // Step 1: fly-in
+                push(() => {
+                    const n = document.getElementById(`arch-node-${i}`);
+                    if (n) n.classList.add('revealed');
+                }, base);
+
+                // Step 2: glow + icon pop
+                push(() => {
+                    const n = document.getElementById(`arch-node-${i}`);
+                    if (!n) return;
+                    n.classList.add('active');
+
+                    // Step 3: connector beam
                     if (i < NODES - 1) {
-                        setTimeout(() => {
-                            const connEl = document.getElementById(`arch-conn-${i}`);
-                            connEl.classList.add('revealed');
+                        push(() => {
+                            const c = document.getElementById(`arch-conn-${i}`);
+                            if (!c) return;
+                            c.classList.add('revealed');
                             requestAnimationFrame(() =>
-                                requestAnimationFrame(() => connEl.classList.add('beaming'))
+                                requestAnimationFrame(() => c.classList.add('beaming'))
                             );
-                            // 4 — start dual-particle travel
-                            setTimeout(() => connEl.classList.add('live'), LIVE_AFTER);
+                            // Step 4: particles
+                            push(() => c.classList.add('live'), LIVE_AFTER);
                         }, BEAM_AFTER);
                     }
 
-                    // On last node → show full status strip
+                    // Last node → show status pill
                     if (i === NODES - 1) {
-                        setTimeout(() => {
-                            const dotEl = document.getElementById('arch-status-dot');
-                            const labelEl = document.getElementById('arch-status-label');
-                            const replayEl = document.getElementById('arch-replay-btn');
-                            const ctrEl = document.getElementById('arch-packet-counter');
-
-                            dotEl.classList.add('visible');
-                            labelEl.classList.add('visible');
-                            replayEl.classList.add('visible');
-
-                            // Start packet counter
-                            packetCount = 0;
-                            ctrEl.textContent = '⬡ 0 pkts/s';
-                            ctrEl.classList.add('visible');
-                            packetTimer = setInterval(() => {
-                                packetCount += Math.floor(Math.random() * 18) + 6;
-                                ctrEl.textContent = `⬡ ${packetCount.toLocaleString()} pkts/s`;
-                            }, 350);
-                        }, 500);
+                        push(() => {
+                            document.getElementById('arch-status-dot').classList.add('visible');
+                            document.getElementById('arch-status-label').classList.add('visible');
+                        }, 480);
                     }
-                }, baseDelay + GLOW_AFTER);
+                }, base + GLOW_AFTER);
             }
         }
 
-        function replayArchChain() {
-            archPlayed = false;
-
-            // Stop packet counter
-            clearInterval(packetTimer);
-            packetTimer = null;
-
-            // Hide bottom strip
-            ['arch-status-dot', 'arch-status-label', 'arch-replay-btn', 'arch-packet-counter'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.classList.remove('visible');
-            });
-
-            // Reset nodes & connectors
-            for (let i = 0; i < NODES; i++) {
-                document.getElementById(`arch-node-${i}`).classList.remove('revealed', 'active');
-                if (i < NODES - 1) {
-                    const connEl = document.getElementById(`arch-conn-${i}`);
-                    connEl.classList.remove('revealed', 'beaming', 'live');
-                    void connEl.offsetWidth;   // force reflow so animations replay
-                }
-            }
-
-            // Brief pause then relaunch
-            setTimeout(launchArchChain, 220);
-        }
-
-        // ── Auto-trigger on scroll into view ──
+        // Bidirectional IntersectionObserver
+        // threshold 0.18 - triggers early so reveal is underway when fully in view
         const archChainEl = document.getElementById('arch-chain');
         if (archChainEl && 'IntersectionObserver' in window) {
             new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
-                    if (entry.isIntersecting && !archPlayed) launchArchChain();
+                    if (entry.isIntersecting) {
+                        archPlay();
+                    } else {
+                        archExit();
+                    }
                 });
-            }, { threshold: 0.25 }).observe(archChainEl);
+            }, { threshold: 0.18 }).observe(archChainEl);
         }
     </script>
 </body>
