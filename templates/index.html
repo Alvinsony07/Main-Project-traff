@@ -184,6 +184,7 @@
             letter-spacing: -1.5px;
             background: linear-gradient(to right, #ffffff, #94A3B8);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: fadeInDown 1s ease-out;
         }
@@ -329,35 +330,663 @@
             line-height: 1.6;
         }
 
-        /* Tech Stack / Workflow */
-        .workflow-row {
+        /* ═══════════════════════════════════════════
+           ARCHITECTURE STACK  —  Premium v2
+        ═══════════════════════════════════════════ */
+
+        .arch-section-wrap {
+            position: relative;
+            padding: 1rem 0 3rem;
+        }
+
+        /* Ambient grid lines behind section */
+        .arch-section-wrap::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
+            background-size: 40px 40px;
+            border-radius: 24px;
+            pointer-events: none;
+        }
+
+        /* ── Section header shimmer ── */
+        .arch-section-wrap .section-header h2 {
+            background: linear-gradient(90deg,
+                    #fff 0%, #94A3B8 30%, #60A5FA 50%, #A78BFA 65%, #94A3B8 80%, #fff 100%);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: headerShimmer 5s linear infinite;
+        }
+
+        @keyframes headerShimmer {
+            from {
+                background-position: 200% center;
+            }
+
+            to {
+                background-position: -100% center;
+            }
+        }
+
+        /* ── Chain row ── */
+        .arch-chain {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 1.5rem;
+            gap: 0;
+            position: relative;
+            flex-wrap: nowrap;
+            padding: 3rem 1rem 2rem;
+            /* extra top room for badges */
+        }
+
+        /* ── Node wrapper — entry animation ── */
+        .arch-node-wrap {
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            position: relative;
+            opacity: 0;
+            transform: translateY(50px) scale(0.8);
+            filter: blur(6px);
+            transition:
+                opacity 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.7s cubic-bezier(0.34, 1.56, 0.64, 1),
+                filter 0.6s ease;
+        }
+
+        .arch-node-wrap.revealed {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            filter: blur(0);
+        }
+
+        /* ── Ambient glow halo behind card ── */
+        .arch-node-halo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            translate: -50% -50%;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: var(--node-color, #3B82F6);
+            opacity: 0;
+            filter: blur(55px);
+            transition: opacity 0.8s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .arch-node-wrap.active .arch-node-halo {
+            opacity: 0.18;
+            animation: haloBreath 3s ease-in-out infinite;
+        }
+
+        @keyframes haloBreath {
+
+            0%,
+            100% {
+                opacity: 0.15;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.25;
+                transform: scale(1.12);
+            }
+        }
+
+        /* ── The glass card ── */
+        .arch-node {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            padding: 2rem 1.5rem 1.6rem;
+            width: 168px;
+            border-radius: 24px;
+            background: rgba(8, 12, 26, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+                0 4px 32px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            cursor: default;
+            transition:
+                border-color 0.5s ease,
+                box-shadow 0.5s ease,
+                transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            overflow: hidden;
+        }
+
+        /* scanning spotlight sweep on activate */
+        .arch-node::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 60%;
+            height: 100%;
+            background: linear-gradient(90deg,
+                    transparent,
+                    rgba(255, 255, 255, 0.05),
+                    transparent);
+            transform: skewX(-18deg);
+            opacity: 0;
+        }
+
+        .arch-node-wrap.active .arch-node::before {
+            animation: cardSweep 3.5s ease-in-out 0.4s infinite;
+        }
+
+        @keyframes cardSweep {
+            0% {
+                left: -100%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            50% {
+                left: 160%;
+                opacity: 1;
+            }
+
+            51% {
+                opacity: 0;
+            }
+
+            100% {
+                left: 160%;
+                opacity: 0;
+            }
+        }
+
+        /* glass top-sheen */
+        .arch-node::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .arch-node-wrap.active .arch-node {
+            border-color: color-mix(in srgb, var(--node-color) 60%, transparent);
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--node-color) 35%, transparent),
+                0 10px 50px rgba(0, 0, 0, 0.6),
+                0 0 80px -12px var(--node-color),
+                inset 0 1px 0 rgba(255, 255, 255, 0.12);
+            transform: translateY(-4px);
+        }
+
+        .arch-node-wrap.active .arch-node::after {
+            opacity: 1;
+        }
+
+        .arch-node-wrap:not(.active):hover .arch-node {
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.14);
+        }
+
+        /* radial color wash inside card */
+        .arch-node-wash {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 50% -10%,
+                    color-mix(in srgb, var(--node-color) 28%, transparent),
+                    transparent 65%);
+            opacity: 0;
+            transition: opacity 0.7s ease;
+            pointer-events: none;
+        }
+
+        .arch-node-wrap.active .arch-node-wash {
+            opacity: 1;
+        }
+
+        /* ── Step badge — OUTSIDE .arch-node (no clipping) ── */
+        .node-badge {
+            position: absolute;
+            top: -14px;
+            /* sits above the card */
+            left: 50%;
+            transform: translateX(-50%) translateY(6px);
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            color: var(--node-color);
+            background: color-mix(in srgb, var(--node-color) 12%, rgba(6, 9, 20, 0.95));
+            border: 1px solid color-mix(in srgb, var(--node-color) 40%, transparent);
+            box-shadow: 0 0 12px -3px var(--node-color);
+            z-index: 10;
+            /* above everything */
+            opacity: 0;
+            transition: opacity 0.45s ease 0.1s,
+                transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s;
+            pointer-events: none;
+        }
+
+        .arch-node-wrap.active .node-badge {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ── Icon ring ── */
+        .node-icon-ring {
+            width: 62px;
+            height: 62px;
+            border-radius: 18px;
+            background: color-mix(in srgb, var(--node-color) 10%, rgba(255, 255, 255, 0.03));
+            border: 1.5px solid color-mix(in srgb, var(--node-color) 40%, transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.6rem;
+            color: var(--node-color);
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* pulsing ring wave after icon pops */
+        .node-icon-ring::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 22px;
+            border: 1.5px solid var(--node-color);
+            opacity: 0;
+        }
+
+        .arch-node-wrap.active .node-icon-ring::after {
+            animation: ringPulse 2.2s ease-out 0.6s infinite;
+        }
+
+        @keyframes ringPulse {
+            0% {
+                inset: 0;
+                opacity: 0.7;
+            }
+
+            100% {
+                inset: -18px;
+                opacity: 0;
+            }
+        }
+
+        .arch-node-wrap.active .node-icon-ring {
+            animation: iconPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            box-shadow: 0 0 28px -4px var(--node-color);
+        }
+
+        @keyframes iconPop {
+            0% {
+                transform: scale(0.4) rotate(-20deg);
+                opacity: 0;
+            }
+
+            60% {
+                transform: scale(1.15) rotate(4deg);
+            }
+
+            100% {
+                transform: scale(1) rotate(0deg);
+                opacity: 1;
+            }
+        }
+
+        .arch-node:hover .node-icon-ring {
+            transform: scale(1.1) rotate(-5deg);
+            box-shadow: 0 0 20px -4px var(--node-color);
+        }
+
+        /* ── Text ── */
+        .node-label {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: #F1F5F9;
+            text-align: center;
+            letter-spacing: -0.2px;
+            position: relative;
+            z-index: 2;
+            line-height: 1.3;
+        }
+
+        .node-desc {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            text-align: center;
+            line-height: 1.5;
+            position: relative;
+            z-index: 2;
+            max-height: 0;
+            overflow: hidden;
+            opacity: 0;
+            transition: max-height 0.5s ease 0.2s, opacity 0.45s ease 0.25s;
+        }
+
+        .arch-node-wrap.active .node-desc {
+            max-height: 50px;
+            opacity: 1;
+        }
+
+        /* ── Connector ── */
+        .arch-connector {
+            display: flex;
+            align-items: center;
+            align-self: center;
+            width: 72px;
+            /* wider pipe */
+            flex-shrink: 0;
+            position: relative;
+            opacity: 0;
+            transition: opacity 0.35s;
+            /* vertically center relative to card centre, accounting for badge */
+            margin-top: 14px;
+        }
+
+        .arch-connector.revealed {
+            opacity: 1;
+        }
+
+        .connector-track {
+            flex: 1;
+            height: 3px;
+            /* thicker */
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 3px;
+            position: relative;
+            overflow: visible;
+        }
+
+        /* dashed idle state under fill */
+        .connector-track::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border-top: 2px dashed rgba(255, 255, 255, 0.07);
+            border-radius: 3px;
+        }
+
+        /* beam fill */
+        .connector-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg,
+                    var(--node-color-from, #60a5fa),
+                    var(--node-color-to, #a78bfa));
+            border-radius: 3px;
+            box-shadow: 0 0 8px 1px var(--node-color-to, #a78bfa);
+            transition: width 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .arch-connector.beaming .connector-fill {
+            width: 100%;
+        }
+
+        /* particle 1 */
+        .connector-particle {
+            position: absolute;
+            top: 50%;
+            left: -6px;
+            translate: 0 -50%;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 10px 3px var(--node-color-to, #a78bfa);
+            opacity: 0;
+        }
+
+        .arch-connector.live .connector-particle {
+            animation: particleTravel 1.5s ease-in-out infinite;
+        }
+
+        /* particle 2 (offset) */
+        .connector-particle2 {
+            position: absolute;
+            top: 50%;
+            left: -6px;
+            translate: 0 -50%;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--node-color-from, #60a5fa);
+            box-shadow: 0 0 8px 2px var(--node-color-from, #60a5fa);
+            opacity: 0;
+        }
+
+        .arch-connector.live .connector-particle2 {
+            animation: particleTravel 1.5s ease-in-out 0.65s infinite;
+        }
+
+        @keyframes particleTravel {
+            0% {
+                left: -6px;
+                opacity: 0;
+            }
+
+            8% {
+                opacity: 1;
+            }
+
+            92% {
+                opacity: 1;
+            }
+
+            100% {
+                left: calc(100% + 6px);
+                opacity: 0;
+            }
+        }
+
+        /* arrow head */
+        .connector-arrow {
+            font-size: 0.65rem;
+            color: rgba(139, 92, 246, 0.5);
+            margin-left: 4px;
+            flex-shrink: 0;
+            transition: color 0.4s;
+        }
+
+        .arch-connector.revealed .connector-arrow {
+            color: rgba(167, 139, 250, 0.9);
+        }
+
+        /* ── Replay / Restart strip ── */
+        .arch-bottom-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.2rem;
+            margin-top: 0.5rem;
+            min-height: 52px;
             flex-wrap: wrap;
         }
 
-        .tech-pill {
-            display: flex;
+        /* live packet counter */
+        .arch-packet-counter {
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 600;
+            color: rgba(96, 165, 250, 0.85);
+            background: rgba(96, 165, 250, 0.08);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+            border-radius: 20px;
+            padding: 3px 12px;
+            letter-spacing: 0.5px;
+            opacity: 0;
+            transform: translateY(6px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            white-space: nowrap;
+        }
+
+        .arch-packet-counter.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .arch-replay-btn {
+            display: inline-flex;
             align-items: center;
-            gap: 10px;
-            padding: 1rem 1.5rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
+            gap: 8px;
+            padding: 0.6rem 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            color: var(--text-muted);
             border-radius: 50px;
+            font-size: 0.82rem;
             font-weight: 500;
-            color: var(--text-main);
-            transition: transform 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            backdrop-filter: blur(8px);
         }
 
-        .tech-pill:hover {
-            transform: translateY(-3px);
-            border-color: var(--accent-blue);
+        .arch-replay-btn.visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
         }
 
-        .tech-pill i {
-            font-size: 1.2rem;
+        .arch-replay-btn:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.4);
+            color: var(--accent-blue);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+        }
+
+        .arch-status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10B981;
+            box-shadow: 0 0 8px #10B981;
+            animation: statusPulse 2s ease-in-out infinite;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .arch-status-dot.visible {
+            opacity: 1;
+        }
+
+        .arch-status-label {
+            font-size: 0.75rem;
+            color: #10B981;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .arch-status-label.visible {
+            opacity: 1;
+        }
+
+        @keyframes statusPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 5px #10B981;
+            }
+
+            50% {
+                box-shadow: 0 0 14px #10B981;
+            }
+        }
+
+        /* ── Mobile responsive ── */
+        @media (max-width: 860px) {
+            .arch-chain {
+                flex-direction: column;
+                align-items: center;
+                gap: 0;
+            }
+
+            .arch-connector {
+                width: 2px;
+                height: 48px;
+                flex-direction: column;
+                margin-bottom: 0;
+                margin-right: 0;
+            }
+
+            .connector-track {
+                width: 2px;
+                height: 100%;
+                flex: none;
+            }
+
+            .connector-fill {
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 0%;
+                background: linear-gradient(180deg, var(--node-color-from, #60a5fa), var(--node-color-to, #a78bfa));
+                transition: height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+
+            .arch-connector.beaming .connector-fill {
+                height: 100%;
+                width: 100%;
+            }
+
+            .connector-arrow {
+                transform: rotate(90deg);
+                margin-left: 0;
+                margin-top: 3px;
+            }
+
+            @keyframes particleTravel {
+                0% {
+                    top: -6px;
+                    left: 50%;
+                    opacity: 0;
+                }
+
+                10% {
+                    opacity: 1;
+                }
+
+                90% {
+                    opacity: 1;
+                }
+
+                100% {
+                    top: calc(100% + 6px);
+                    left: 50%;
+                    opacity: 0;
+                }
+            }
         }
 
         /* Footer */
@@ -489,6 +1118,301 @@
         .btn-animated.is-loading .btn-text-content {
             opacity: 0;
         }
+
+        /* ═══════════════════════════════════════
+           ARCH NODE DETAIL MODAL
+        ═══════════════════════════════════════ */
+
+        /* Subtle hover hint on node card */
+        .arch-node-wrap.active .arch-node {
+            cursor: pointer;
+        }
+
+
+        .node-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.58rem;
+            letter-spacing: 0.8px;
+            color: color-mix(in srgb, var(--node-color) 70%, transparent);
+            opacity: 0;
+            white-space: nowrap;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .arch-node-wrap.active .arch-node:hover .node-hint {
+            opacity: 1;
+        }
+
+        /* ── Backdrop ── */
+        .ndetail-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(5, 8, 20, 0.72);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .ndetail-backdrop.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* ── Modal card ── */
+        .ndetail-card {
+            position: relative;
+            width: 100%;
+            max-width: 560px;
+            background: rgba(9, 13, 28, 0.92);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 28px;
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            box-shadow:
+                0 0 0 1px color-mix(in srgb, var(--modal-color, #60A5FA) 25%, transparent),
+                0 40px 80px rgba(0, 0, 0, 0.7),
+                0 0 100px -20px var(--modal-color, #60A5FA);
+            overflow: hidden;
+            transform: translateY(40px) scale(0.95);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+            opacity: 0;
+        }
+
+        .ndetail-backdrop.open .ndetail-card {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+
+        /* color wash / top strip */
+        .ndetail-strip {
+            height: 4px;
+            background: linear-gradient(90deg, var(--modal-color, #60A5FA), color-mix(in srgb, var(--modal-color, #60A5FA) 40%, #a78bfa));
+        }
+
+        .ndetail-top-wash {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: radial-gradient(ellipse at 50% -5%,
+                    color-mix(in srgb, var(--modal-color, #60A5FA) 18%, transparent),
+                    transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ── Header ── */
+        .ndetail-header {
+            display: flex;
+            align-items: center;
+            gap: 1.2rem;
+            padding: 1.8rem 2rem 1rem;
+        }
+
+        .ndetail-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
+            background: color-mix(in srgb, var(--modal-color, #60A5FA) 12%, rgba(255, 255, 255, 0.03));
+            border: 1.5px solid color-mix(in srgb, var(--modal-color, #60A5FA) 40%, transparent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: var(--modal-color, #60A5FA);
+            box-shadow: 0 0 24px -6px var(--modal-color, #60A5FA);
+            flex-shrink: 0;
+        }
+
+        .ndetail-title-block .ndetail-badge {
+            font-size: 0.58rem;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+            color: var(--modal-color, #60A5FA);
+            background: color-mix(in srgb, var(--modal-color, #60A5FA) 12%, rgba(6, 9, 20, 0.9));
+            border: 1px solid color-mix(in srgb, var(--modal-color, #60A5FA) 35%, transparent);
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+            margin-bottom: 6px;
+        }
+
+        .ndetail-title-block h3 {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: #F1F5F9;
+            margin: 0 0 2px;
+            line-height: 1.2;
+        }
+
+        .ndetail-title-block .ndetail-tagline {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* close btn */
+        .ndetail-close {
+            position: absolute;
+            top: 1.2rem;
+            right: 1.4rem;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .ndetail-close:hover {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #F87171;
+        }
+
+        /* ── Body ── */
+        .ndetail-body {
+            padding: 0 2rem 2rem;
+        }
+
+        /* Why section */
+        .ndetail-why {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .ndetail-why-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+            color: color-mix(in srgb, var(--modal-color, #60A5FA) 80%, #fff);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .ndetail-why p {
+            font-size: 0.82rem;
+            color: #94A3B8;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* Metrics row */
+        .ndetail-metrics {
+            display: flex;
+            gap: 0.8rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .ndetail-metric {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            padding: 0.85rem 0.8rem;
+            text-align: center;
+        }
+
+        .ndetail-metric .m-val {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--modal-color, #60A5FA);
+            display: block;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .ndetail-metric .m-lbl {
+            font-size: 0.62rem;
+            color: var(--text-muted);
+            letter-spacing: 0.4px;
+        }
+
+        /* Feature chips */
+        .ndetail-features-label {
+            font-size: 0.6rem;
+            font-weight: 800;
+            letter-spacing: 1.4px;
+            color: color-mix(in srgb, var(--modal-color, #60A5FA) 80%, #fff);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .ndetail-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1.4rem;
+        }
+
+        .ndetail-chip {
+            font-size: 0.72rem;
+            font-weight: 500;
+            padding: 5px 13px;
+            border-radius: 20px;
+            background: color-mix(in srgb, var(--modal-color, #60A5FA) 10%, rgba(255, 255, 255, 0.03));
+            border: 1px solid color-mix(in srgb, var(--modal-color, #60A5FA) 30%, transparent);
+            color: color-mix(in srgb, var(--modal-color, #60A5FA) 90%, #fff);
+            transition: background 0.2s, transform 0.15s;
+            cursor: default;
+        }
+
+        .ndetail-chip:hover {
+            background: color-mix(in srgb, var(--modal-color, #60A5FA) 22%, rgba(255, 255, 255, 0.05));
+            transform: translateY(-2px);
+        }
+
+        /* Stack tags */
+        .ndetail-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+        }
+
+        .ndetail-tag {
+            font-size: 0.65rem;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #64748B;
+        }
+
+        @media (max-width: 560px) {
+            .ndetail-card {
+                border-radius: 20px;
+            }
+
+            .ndetail-metrics {
+                flex-direction: column;
+            }
+
+            .ndetail-metric .m-val {
+                font-size: 1.1rem;
+            }
+        }
     </style>
 </head>
 
@@ -608,73 +1532,409 @@
             </div>
         </section>
 
-        <section class="section-container" style="padding-top: 0;">
+        <section class="section-container arch-section-wrap" style="padding-top: 0;">
             <div class="section-header">
                 <h2>Architecture Stack</h2>
                 <p>Built with an enterprise-grade, lightweight toolset.</p>
             </div>
 
-            <div class="workflow-row">
-                <div class="tech-pill">
-                    <i class="fab fa-python" style="color: #3B82F6;"></i> Python Backbone
+            <!-- Premium Chain -->
+            <div class="arch-chain" id="arch-chain">
+
+                <!-- ─ Node 1: Python ─ -->
+                <div class="arch-node-wrap" id="arch-node-0" style="--node-color:#60A5FA;">
+                    <div class="arch-node-halo"></div>
+                    <div class="node-badge">01 · RUNTIME</div>
+                    <div class="arch-node">
+                        <div class="arch-node-wash"></div>
+                        <div class="node-icon-ring"><i class="fab fa-python"></i></div>
+                        <div class="node-label">Python<br>Backbone</div>
+                        <div class="node-desc">Core runtime &amp; orchestration layer</div>
+                    </div>
                 </div>
-                <i class="fas fa-arrow-right" style="color: var(--border-color);"></i>
-                <div class="tech-pill">
-                    <i class="fas fa-brain" style="color: #10B981;"></i> YOLOv8 Vision
+
+                <!-- Connector 0→1 -->
+                <div class="arch-connector" id="arch-conn-0"
+                    style="--node-color-from:#60A5FA; --node-color-to:#34D399;">
+                    <div class="connector-track">
+                        <div class="connector-fill"></div>
+                        <div class="connector-particle"></div>
+                        <div class="connector-particle2"></div>
+                    </div>
+                    <span class="connector-arrow"><i class="fas fa-chevron-right"></i></span>
                 </div>
-                <i class="fas fa-arrow-right" style="color: var(--border-color);"></i>
-                <div class="tech-pill">
-                    <i class="fas fa-database" style="color: #F59E0B;"></i> Fast SQLite
+
+                <!-- ─ Node 2: YOLOv8 ─ -->
+                <div class="arch-node-wrap" id="arch-node-1" style="--node-color:#34D399;">
+                    <div class="arch-node-halo"></div>
+                    <div class="node-badge">02 · VISION</div>
+                    <div class="arch-node">
+                        <div class="arch-node-wash"></div>
+                        <div class="node-icon-ring"><i class="fas fa-brain"></i></div>
+                        <div class="node-label">YOLOv8<br>Vision</div>
+                        <div class="node-desc">Real-time deep&nbsp;learning detection</div>
+                    </div>
                 </div>
-                <i class="fas fa-arrow-right" style="color: var(--border-color);"></i>
-                <div class="tech-pill">
-                    <i class="fab fa-html5" style="color: #F87171;"></i> Responsive Frontend
+
+                <!-- Connector 1→2 -->
+                <div class="arch-connector" id="arch-conn-1"
+                    style="--node-color-from:#34D399; --node-color-to:#FBBF24;">
+                    <div class="connector-track">
+                        <div class="connector-fill"></div>
+                        <div class="connector-particle"></div>
+                        <div class="connector-particle2"></div>
+                    </div>
+                    <span class="connector-arrow"><i class="fas fa-chevron-right"></i></span>
                 </div>
+
+                <!-- ─ Node 3: SQLite ─ -->
+                <div class="arch-node-wrap" id="arch-node-2" style="--node-color:#FBBF24;">
+                    <div class="arch-node-halo"></div>
+                    <div class="node-badge">03 · STORAGE</div>
+                    <div class="arch-node">
+                        <div class="arch-node-wash"></div>
+                        <div class="node-icon-ring"><i class="fas fa-database"></i></div>
+                        <div class="node-label">Fast<br>SQLite</div>
+                        <div class="node-desc">Lightweight persistent data&nbsp;layer</div>
+                    </div>
+                </div>
+
+                <!-- Connector 2→3 -->
+                <div class="arch-connector" id="arch-conn-2"
+                    style="--node-color-from:#FBBF24; --node-color-to:#F87171;">
+                    <div class="connector-track">
+                        <div class="connector-fill"></div>
+                        <div class="connector-particle"></div>
+                        <div class="connector-particle2"></div>
+                    </div>
+                    <span class="connector-arrow"><i class="fas fa-chevron-right"></i></span>
+                </div>
+
+                <!-- ─ Node 4: Frontend ─ -->
+                <div class="arch-node-wrap" id="arch-node-3" style="--node-color:#F87171;">
+                    <div class="arch-node-halo"></div>
+                    <div class="node-badge">04 · INTERFACE</div>
+                    <div class="arch-node">
+                        <div class="arch-node-wash"></div>
+                        <div class="node-icon-ring"><i class="fab fa-html5"></i></div>
+                        <div class="node-label">Responsive<br>Frontend</div>
+                        <div class="node-desc">Glass-morphic command&nbsp;UI</div>
+                    </div>
+                </div>
+
+            </div><!-- /arch-chain -->
+
+            <!-- Bottom status strip -->
+            <div class="arch-bottom-strip">
+                <div class="arch-status-dot" id="arch-status-dot"></div>
+                <span class="arch-status-label" id="arch-status-label">Pipeline Active</span>
+                <span class="arch-packet-counter" id="arch-packet-counter"></span>
+                <button class="arch-replay-btn" id="arch-replay-btn" onclick="replayArchChain()">
+                    <i class="fas fa-redo-alt"></i> Restart
+                </button>
             </div>
+
         </section>
     </main>
+
+    <!-- ════════════════════════════════════════════
+         ARCH NODE DETAIL MODAL
+    ════════════════════════════════════════════ -->
+    <div class="ndetail-backdrop" id="ndetail-backdrop" role="dialog" aria-modal="true" aria-label="Technology Detail">
+        <div class="ndetail-card" id="ndetail-card">
+            <div class="ndetail-strip" id="ndetail-strip"></div>
+            <div class="ndetail-top-wash" id="ndetail-wash"></div>
+            <!-- close -->
+            <button class="ndetail-close" id="ndetail-close" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+            <!-- header -->
+            <div class="ndetail-header">
+                <div class="ndetail-icon" id="ndetail-icon"></div>
+                <div class="ndetail-title-block">
+                    <div class="ndetail-badge" id="ndetail-badge"></div>
+                    <h3 id="ndetail-title"></h3>
+                    <div class="ndetail-tagline" id="ndetail-tagline"></div>
+                </div>
+            </div>
+            <!-- body -->
+            <div class="ndetail-body">
+                <div class="ndetail-why">
+                    <div class="ndetail-why-label">Why we use it</div>
+                    <p id="ndetail-why"></p>
+                </div>
+                <div class="ndetail-metrics" id="ndetail-metrics"></div>
+                <div class="ndetail-features-label">Key Capabilities</div>
+                <div class="ndetail-chips" id="ndetail-chips"></div>
+                <div class="ndetail-features-label" style="margin-top:0.2rem;">Stack &amp; Libraries</div>
+                <div class="ndetail-stack" id="ndetail-stack"></div>
+            </div>
+        </div>
+    </div>
 
     <footer>
         <p>&copy; 2026 Traffic Vision AI Platform. Engineered for next-gen smart cities.</p>
     </footer>
 
     <script>
-        // Subtle glow hover effect for bento cards tracking mouse cursor
+        // ── Bento card mouse-glow effect ──
         document.querySelectorAll('.bento-card').forEach(card => {
             card.addEventListener('mousemove', e => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                card.style.setProperty('--mouse-x', `${x}px`);
-                card.style.setProperty('--mouse-y', `${y}px`);
+                const r = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - r.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - r.top}px`);
             });
         });
 
-        // Setup green fill transition
+        // ══════════════════════════════════════════════════
+        //  ARCH NODE DETAIL MODAL
+        // ══════════════════════════════════════════════════
+        const NODE_DATA = [
+            {
+                color: '#60A5FA',
+                badge: '01 · RUNTIME',
+                icon: '<i class="fab fa-python"></i>',
+                title: 'Python Backbone',
+                tagline: 'Core orchestration & runtime engine',
+                why: 'Python\'s rich async ecosystem, mature libraries, and simplicity make it ideal for tying together computer vision, database I/O, and a real-time web server in a single coherent runtime. Its threading model lets us process four camera feeds concurrently without blocking the API layer.',
+                metrics: [
+                    { val: '4', lbl: 'Camera Threads' },
+                    { val: '<5ms', lbl: 'Dispatch Latency' },
+                    { val: '3.10+', lbl: 'Python Version' },
+                ],
+                chips: ['Event Orchestration', 'Camera Thread Pool', 'REST API Layer', 'Signal Dispatch', 'Emergency Override Logic', 'Async I/O'],
+                stack: ['Flask', 'OpenCV', 'threading', 'sqlite3', 'Jinja2', 'SocketIO'],
+            },
+            {
+                color: '#34D399',
+                badge: '02 · VISION',
+                icon: '<i class="fas fa-brain"></i>',
+                title: 'YOLOv8 Vision',
+                tagline: 'Real-time deep learning detection model',
+                why: 'YOLOv8 (Nano) delivers state-of-the-art object detection at ~45 FPS on CPU — fast enough for real-time signal decisions. It was pre-trained on COCO and fine-tuned on traffic datasets, letting it distinguish cars, trucks, buses, motorcycles, and critically — ambulances — with high confidence.',
+                metrics: [
+                    { val: '99%', lbl: 'Detection Accuracy' },
+                    { val: '~22ms', lbl: 'Inference Time' },
+                    { val: '45+', lbl: 'FPS on CPU' },
+                ],
+                chips: ['Real-time Bounding Boxes', 'Ambulance Priority Detection', 'Multi-class Vehicle Taxonomy', 'Confidence Scoring', 'Lane Density Mapping', 'Per-frame Analytics'],
+                stack: ['ultralytics', 'YOLOv8n', 'COCO Weights', 'numpy', 'cv2', 'torch'],
+            },
+            {
+                color: '#FBBF24',
+                badge: '03 · STORAGE',
+                icon: '<i class="fas fa-database"></i>',
+                title: 'Fast SQLite',
+                tagline: 'Lightweight zero-config persistent data layer',
+                why: 'SQLite provides ACID-compliant persistence with zero server overhead — perfect for an edge-deployed system. All detection events, signal logs, and session data are committed in under 1 ms, enabling rich historical analytics without the complexity of a full database server.',
+                metrics: [
+                    { val: '<1ms', lbl: 'Write Latency' },
+                    { val: '100k+', lbl: 'Records Stored' },
+                    { val: '0', lbl: 'Config Files Needed' },
+                ],
+                chips: ['Detection Event Log', 'Signal Timing History', 'Session Persistence', 'Analytics Cache', 'Vehicle Count Archive', 'Emergency Incident Log'],
+                stack: ['sqlite3', 'SQLAlchemy', 'WAL Mode', 'ACID Transactions', 'Python DB-API 2.0'],
+            },
+            {
+                color: '#F87171',
+                badge: '04 · INTERFACE',
+                icon: '<i class="fab fa-html5"></i>',
+                title: 'Responsive Frontend',
+                tagline: 'Zero-framework glass-morphic command dashboard',
+                why: 'Pure HTML5/CSS3/JS eliminates framework build steps and delivers sub-100 ms initial render. The glassmorphic design language provides a premium command-center feel, while Chart.js powers live analytics and MJPEG streams deliver four simultaneous camera feeds in the browser without plugins.',
+                metrics: [
+                    { val: '<100ms', lbl: 'Initial Render' },
+                    { val: '4', lbl: 'Live Video Feeds' },
+                    { val: '0', lbl: 'Framework Dependencies' },
+                ],
+                chips: ['MJPEG Camera Streams', 'Glassmorphic Dark UI', 'Live Analytics Charts', 'Manual Signal Override', 'Ambulance Alert Overlay', 'Role-based Access Control'],
+                stack: ['HTML5', 'CSS3', 'Vanilla JS', 'Chart.js', 'Jinja2 Templates', 'Fetch API'],
+            },
+        ];
+
+        // Inject node hints
+        document.querySelectorAll('.arch-node-wrap').forEach((wrap, i) => {
+            const hint = document.createElement('div');
+            hint.className = 'node-hint';
+            hint.textContent = 'TAP TO EXPLORE';
+            wrap.querySelector('.arch-node').appendChild(hint);
+        });
+
+        // Click → open modal
+        document.querySelectorAll('.arch-node-wrap').forEach((wrap, i) => {
+            wrap.querySelector('.arch-node').addEventListener('click', () => {
+                if (!wrap.classList.contains('active')) return; // only after revealed
+                openNodeDetail(i);
+            });
+        });
+
+        function openNodeDetail(idx) {
+            const d = NODE_DATA[idx];
+            const backdrop = document.getElementById('ndetail-backdrop');
+            const card = document.getElementById('ndetail-card');
+
+            // Set CSS variable for color theming
+            card.style.setProperty('--modal-color', d.color);
+
+            // Populate
+            document.getElementById('ndetail-icon').innerHTML = d.icon;
+            document.getElementById('ndetail-icon').style.color = d.color;
+            document.getElementById('ndetail-badge').textContent = d.badge;
+            document.getElementById('ndetail-title').textContent = d.title;
+            document.getElementById('ndetail-tagline').textContent = d.tagline;
+            document.getElementById('ndetail-why').textContent = d.why;
+
+            // Metrics
+            const mEl = document.getElementById('ndetail-metrics');
+            mEl.innerHTML = d.metrics.map(m =>
+                `<div class="ndetail-metric">
+                    <span class="m-val">${m.val}</span>
+                    <span class="m-lbl">${m.lbl}</span>
+                </div>`
+            ).join('');
+
+            // Chips
+            document.getElementById('ndetail-chips').innerHTML =
+                d.chips.map(c => `<span class="ndetail-chip">${c}</span>`).join('');
+
+            // Stack tags
+            document.getElementById('ndetail-stack').innerHTML =
+                d.stack.map(t => `<span class="ndetail-tag">${t}</span>`).join('');
+
+            // Open
+            backdrop.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeNodeDetail() {
+            document.getElementById('ndetail-backdrop').classList.remove('open');
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('ndetail-close').addEventListener('click', closeNodeDetail);
+        document.getElementById('ndetail-backdrop').addEventListener('click', e => {
+            if (e.target === document.getElementById('ndetail-backdrop')) closeNodeDetail();
+        });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeNodeDetail();
+        });
+
         document.querySelectorAll('.btn-animated').forEach(btn => {
             btn.addEventListener('click', function (e) {
-                // Ignore middle clicks or combinations
                 if (e.button !== 0 || e.ctrlKey || e.shiftKey || e.metaKey || e.altKey || this.target === '_blank') return;
-
                 e.preventDefault();
                 const targetUrl = this.href;
-
-                // 1. Kick off the fill animation and spinner
                 this.classList.add('is-loading');
-
-                // 2. Wait for the green fill to reach the end (600ms match with CSS) or slightly longer
                 setTimeout(() => {
-                    // Start fading out the page for a smooth transition
                     document.body.style.transition = 'opacity 0.2s ease';
                     document.body.style.opacity = '0';
-
-                    // 3. Jump to the next page once faded
-                    setTimeout(() => {
-                        window.location.href = targetUrl;
-                    }, 200);
+                    setTimeout(() => { window.location.href = targetUrl; }, 200);
                 }, 700);
             });
         });
+
+        // ══════════════════════════════════════════════════
+        //  ARCHITECTURE STACK — Premium Chain Animation v3
+        // ══════════════════════════════════════════════════
+        const NODES = 4;
+        const NODE_DELAY = 400;   // ms stagger between nodes
+        const GLOW_AFTER = 260;   // ms after reveal  → activate glow
+        const BEAM_AFTER = 180;   // ms after glow    → fire beam fill
+        const LIVE_AFTER = 780;   // ms after beam    → start particles
+        let archPlayed = false;
+        let packetTimer = null;
+        let packetCount = 0;
+
+        function launchArchChain() {
+            if (archPlayed) return;
+            archPlayed = true;
+
+            for (let i = 0; i < NODES; i++) {
+                const baseDelay = i * NODE_DELAY;
+                const nodeEl = document.getElementById(`arch-node-${i}`);
+
+                // 1 — fly-in (blur + translateY)
+                setTimeout(() => nodeEl.classList.add('revealed'), baseDelay);
+
+                // 2 — colour glow + icon pop
+                setTimeout(() => {
+                    nodeEl.classList.add('active');
+
+                    // 3 — fire connector beam
+                    if (i < NODES - 1) {
+                        setTimeout(() => {
+                            const connEl = document.getElementById(`arch-conn-${i}`);
+                            connEl.classList.add('revealed');
+                            requestAnimationFrame(() =>
+                                requestAnimationFrame(() => connEl.classList.add('beaming'))
+                            );
+                            // 4 — start dual-particle travel
+                            setTimeout(() => connEl.classList.add('live'), LIVE_AFTER);
+                        }, BEAM_AFTER);
+                    }
+
+                    // On last node → show full status strip
+                    if (i === NODES - 1) {
+                        setTimeout(() => {
+                            const dotEl = document.getElementById('arch-status-dot');
+                            const labelEl = document.getElementById('arch-status-label');
+                            const replayEl = document.getElementById('arch-replay-btn');
+                            const ctrEl = document.getElementById('arch-packet-counter');
+
+                            dotEl.classList.add('visible');
+                            labelEl.classList.add('visible');
+                            replayEl.classList.add('visible');
+
+                            // Start packet counter
+                            packetCount = 0;
+                            ctrEl.textContent = '⬡ 0 pkts/s';
+                            ctrEl.classList.add('visible');
+                            packetTimer = setInterval(() => {
+                                packetCount += Math.floor(Math.random() * 18) + 6;
+                                ctrEl.textContent = `⬡ ${packetCount.toLocaleString()} pkts/s`;
+                            }, 350);
+                        }, 500);
+                    }
+                }, baseDelay + GLOW_AFTER);
+            }
+        }
+
+        function replayArchChain() {
+            archPlayed = false;
+
+            // Stop packet counter
+            clearInterval(packetTimer);
+            packetTimer = null;
+
+            // Hide bottom strip
+            ['arch-status-dot', 'arch-status-label', 'arch-replay-btn', 'arch-packet-counter'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.remove('visible');
+            });
+
+            // Reset nodes & connectors
+            for (let i = 0; i < NODES; i++) {
+                document.getElementById(`arch-node-${i}`).classList.remove('revealed', 'active');
+                if (i < NODES - 1) {
+                    const connEl = document.getElementById(`arch-conn-${i}`);
+                    connEl.classList.remove('revealed', 'beaming', 'live');
+                    void connEl.offsetWidth;   // force reflow so animations replay
+                }
+            }
+
+            // Brief pause then relaunch
+            setTimeout(launchArchChain, 220);
+        }
+
+        // ── Auto-trigger on scroll into view ──
+        const archChainEl = document.getElementById('arch-chain');
+        if (archChainEl && 'IntersectionObserver' in window) {
+            new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !archPlayed) launchArchChain();
+                });
+            }, { threshold: 0.25 }).observe(archChainEl);
+        }
     </script>
 </body>
 

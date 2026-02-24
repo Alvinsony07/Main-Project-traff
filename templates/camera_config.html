@@ -211,7 +211,7 @@
                                 <i class="fas fa-cloud-upload-alt"></i> Browse MP4 / AVI
                             </label>
                             <input type="file" id="file-upload-{{i}}" name="video_{{i+1}}" accept="video/*"
-                                onchange="updateFileName(this, {{i}})">
+                                data-index="{{i}}">
                             <div id="file-name-{{i}}"
                                 style="text-align:center; font-size:0.8rem; color:var(--accent); margin-top:8px;"></div>
                         </div>
@@ -238,6 +238,14 @@
                 statusObj.innerHTML = '<i class="fas fa-times-circle"></i> Offline';
             }
         }
+
+        // Wire up file input change events using data-index attribute
+        document.querySelectorAll('input[type="file"]').forEach(function (fileInput) {
+            fileInput.addEventListener('change', function () {
+                var idx = parseInt(this.getAttribute('data-index'));
+                updateFileName(this, idx);
+            });
+        });
 
         // Also add event listener to text inputs
         document.querySelectorAll('input[type="text"]').forEach((input, index) => {
