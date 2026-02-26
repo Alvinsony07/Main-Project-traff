@@ -1248,6 +1248,8 @@
 
         let trendChart = null;
         let signalChart = null;
+        let distChartObj = null;
+        let peakChartObj = null;
         let streamBuffer = [];   // rolling window for live trend
 
         // ─── ANIMATED COUNTER ─────────────────────────────
@@ -1271,8 +1273,8 @@
             if (el) el.style.strokeDashoffset = circ - (circ * Math.min(pct, 1));
         }
 
-        // ─── STATIC ANALYTICS ─────────────────────────────
-        document.addEventListener('DOMContentLoaded', () => {
+        // ─── LIVE ANALYTICS ─────────────────────────────
+        function fetchAnalyticsLoop() {
             fetch('/api/stats?t=' + Date.now())
                 .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
                 .then(data => {
@@ -1280,22 +1282,24 @@
 
                     if (!hasData) {
                         noData('trendChart'); noData('distChart'); noData('peakChart');
-                        buildLaneBars([0, 0, 0, 0]);
                         return;
                     }
 
                     buildKPIs(data);
-                    buildTrendChart(data);
+                    if (!trendChart) {
+                        buildTrendChart(data);
+                    }
                     buildDistChart(data);
                     buildPeakChart(data);
-
-                    const lp = data.lane_performance || {};
-                    buildLaneBars([lp[1] || 0, lp[2] || 0, lp[3] || 0, lp[4] || 0]);
                 })
                 .catch(() => {
                     ['trendChart', 'distChart', 'peakChart'].forEach(noData);
-                    buildLaneBars([0, 0, 0, 0]);
                 });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchAnalyticsLoop();
+            setInterval(fetchAnalyticsLoop, 5000);
         });
 
         // ─── KPIs ──────────────────────────────────────────
@@ -1311,10 +1315,10 @@
             setRing('ring-total', total / (total * 1.2 || 1));
 
             document.getElementById('kpi-peak').textContent = 'L' + (peakIdx + 1);
-            document.getElementById('kpi-peak-sub').innerHTML = `<i class="fas fa-traffic-light"></i> ${maxLoad} vehicles`;
+            document.getElementById('kpi-peak-sub').innerHTML = `<i class="fas fa-traffic-light"></i> ${Math.round(maxLoad)} vehicles`;
 
-            document.getElementById('kpi-emerg').textContent = data.ambulance_events || 0;
             const ee = data.ambulance_events || 0;
+            animateCount(document.getElementById('kpi-emerg'), ee);
             setRing('ring-emerg', ee / 10);
 
             document.getElementById('kpi-total-sub').innerHTML = `<i class="fas fa-arrow-up"></i> ${trend.length} data points`;
@@ -1389,20 +1393,26 @@
             if (!labels.length) { noData('distChart'); return; }
 
             const palette = [C.blue, C.red, C.green, C.yellow, C.purple, C.pink, C.cyan];
-            new Chart(document.getElementById('distChart').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels,
-                    datasets: [{ data: values, backgroundColor: palette, borderWidth: 0, hoverOffset: 8 }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '72%',
-                    plugins: {
-                        legend: { position: 'right', labels: { boxWidth: 9, boxHeight: 9, padding: 16, color: '#64748b', font: { size: 11 } } },
-                        tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10 }
+            if (!distChartObj) {
+                distChartObj = new Chart(document.getElementById('distChart').getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels,
+                        datasets: [{ data: values, backgroundColor: palette, borderWidth: 0, hoverOffset: 8 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, cutout: '72%',
+                        plugins: {
+                            legend: { position: 'right', labels: { boxWidth: 9, boxHeight: 9, padding: 16, color: '#64748b', font: { size: 11 } } },
+                            tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10 }
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                distChartObj.data.labels = labels;
+                distChartObj.data.datasets[0].data = values;
+                distChartObj.update('none');
+            }
         }
 
         // ─── PEAK CHART ────────────────────────────────────
@@ -1418,21 +1428,27 @@
                 return r > 0.75 ? C.red : r > 0.4 ? C.yellow : C.blue;
             });
 
-            new Chart(document.getElementById('peakChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: hours,
-                    datasets: [{ data: volumes, backgroundColor: barColors, borderRadius: 3, borderSkipped: false }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10, displayColors: false } },
-                    scales: {
-                        x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8, color: '#334155' } },
-                        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false }, ticks: { color: '#334155' } }
+            if (!peakChartObj) {
+                peakChartObj = new Chart(document.getElementById('peakChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: hours,
+                        datasets: [{ data: volumes, backgroundColor: barColors, borderRadius: 3, borderSkipped: false }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(7,11,20,0.95)', borderColor: 'rgba(255,255,255,0.06)', borderWidth: 1, titleColor: '#f0f4ff', bodyColor: '#64748b', padding: 10, displayColors: false } },
+                        scales: {
+                            x: { grid: { display: false }, border: { display: false }, ticks: { maxTicksLimit: 8, color: '#334155' } },
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.03)' }, border: { display: false }, ticks: { color: '#334155' } }
+                        }
                     }
-                }
-            });
+                });
+            } else {
+                peakChartObj.data.datasets[0].data = volumes;
+                peakChartObj.data.datasets[0].backgroundColor = barColors;
+                peakChartObj.update('none');
+            }
         }
 
         // ─── LANE BARS ─────────────────────────────────────

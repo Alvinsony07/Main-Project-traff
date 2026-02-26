@@ -1,0 +1,23 @@
+C:\Users\Alvin Sony\Desktop\Alvin\MCA\Sem 4\main project\traff\traffic_vision_ai\app.py:135: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  'timestamp': datetime.utcnow().isoformat()
+C:\Users\Alvin Sony\Desktop\Alvin\MCA\Sem 4\main project\traff\traffic_vision_ai\app.py:150: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  socketio.emit('vehicle_count', {'lanes': lane_data, 'timestamp': datetime.utcnow().isoformat()})
+[2026-02-26 09:10:15,988] INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+[2026-02-26 09:10:15,988] INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+[2026-02-26 09:10:15,989] INFO Adding job tentatively -- it will be properly scheduled when the scheduler starts
+[2026-02-26 09:10:15,989] INFO Added job "job_fetch_weather" to job store "default"
+[2026-02-26 09:10:15,990] INFO Added job "job_train_predictions" to job store "default"
+[2026-02-26 09:10:15,990] INFO Added job "job_log_signal_efficiency" to job store "default"
+[2026-02-26 09:10:15,991] INFO Scheduler started
+[2026-02-26 09:10:15,991] INFO APScheduler started with 3 background jobs.
+[2026-02-26 09:10:15,992] INFO Running job "job_fetch_weather (trigger: interval[0:10:00], next run at: 2026-02-26 09:20:15 IST)" (scheduled at 2026-02-26 09:10:15.986471+05:30)
+[2026-02-26 09:10:16,027] INFO Job "job_fetch_weather (trigger: interval[0:10:00], next run at: 2026-02-26 09:20:15 IST)" executed successfully
+Traceback (most recent call last):
+  File "C:\Users\Alvin Sony\Desktop\Alvin\MCA\Sem 4\main project\traff\traffic_vision_ai\app.py", line 1258, in <module>
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Alvin Sony\AppData\Roaming\Python\Python313\site-packages\flask_socketio\__init__.py", line 640, in run
+    raise RuntimeError('The Werkzeug web server is not '
+    ...<2 lines>...
+                       'run() method to disable this error.')
+RuntimeError: The Werkzeug web server is not designed to run in production. Pass allow_unsafe_werkzeug=True to the run() method to disable this error.

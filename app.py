@@ -206,11 +206,15 @@ def get_stats():
     ).group_by(LaneStats.lane_id).all()
     lane_data = {l: round(c, 1) for l, c in lane_query}
 
+    # 5. Emergency Events / Overrides (DispatchLogs usually align with these)
+    ambulance_events = db.session.query(DispatchLog).count()
+
     return jsonify({
         'trend': trend_data,
         'distribution': dist_data,
         'peak_hours': peak_data,
-        'lane_performance': lane_data
+        'lane_performance': lane_data,
+        'ambulance_events': ambulance_events
     })
 
 @app.route('/api/export_stats')
@@ -235,10 +239,9 @@ def export_stats():
     output.headers["Content-type"] = "text/csv"
     return output
 
-@app.route('/setup_demo', methods=['POST'])
-def setup_demo():
-    """Helper to start the video processing with default/uploaded videos"""
-    # For this environment, we might auto-load some dummy paths if files don't exist
+@app.route('/setup_streams', methods=['POST'])
+def setup_streams():
+    """Helper to start the video processing with uploaded videos"""
     # Ensure uploads folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])

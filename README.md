@@ -14,7 +14,6 @@ AI-powered Intelligent Traffic Management System using Computer Vision.
 1. **Double-click** `run_project.bat` to automatically:
    - Install dependencies.
    - Create the database and admin user.
-   - Seed sample analytics data.
    - Start the web server.
 
 2. Open `http://localhost:5000`.
@@ -42,7 +41,6 @@ AI-powered Intelligent Traffic Management System using Computer Vision.
 3. Setup Database & Admin:
    ```bash
    flask --app app create-admin
-   python seed.py  # Optional: Adds dummy data for charts
    ```
 
 ### 3. Running the Application
