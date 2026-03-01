@@ -166,6 +166,59 @@ def get_status():
         'lane_data': lane_data
     })
 
+@app.route('/api/city_map_data')
+def city_map_data():
+    """Aggregated API for City Overview map — traffic + incidents + dispatches"""
+    status = signal_controller.get_status()
+    lane_data = video_processor.lane_data
+
+    # Accident reports (recent, with GPS)
+    reports = AccidentReport.query.order_by(AccidentReport.timestamp.desc()).limit(20).all()
+    reports_data = [{
+        'id': r.id,
+        'location': r.location,
+        'description': r.description,
+        'latitude': r.latitude,
+        'longitude': r.longitude,
+        'status': r.status,
+        'timestamp': r.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        'user': r.user.username if r.user else 'Unknown'
+    } for r in reports]
+
+    # Active dispatches
+    dispatches = DispatchLog.query.filter(
+        DispatchLog.status.in_(['Dispatched', 'En Route', 'Arrived', 'Patient Loaded'])
+    ).order_by(DispatchLog.timestamp.desc()).all()
+    dispatch_data = [{
+        'id': d.id,
+        'hospital_name': d.hospital_name,
+        'hospital_lat': d.hospital_lat,
+        'hospital_lng': d.hospital_lng,
+        'accident_lat': d.accident_lat,
+        'accident_lng': d.accident_lng,
+        'distance_km': d.distance_km,
+        'status': d.status,
+        'timestamp': d.timestamp.strftime('%H:%M:%S')
+    } for d in dispatches]
+
+    # Summary counts
+    total_vehicles = sum(
+        (lane_data.get(str(i), {}).get('count', 0) for i in range(4)), 0
+    )
+    active_incidents = AccidentReport.query.filter(AccidentReport.status != 'Resolved').count()
+
+    return jsonify({
+        'signal_status': status,
+        'lane_data': lane_data,
+        'reports': reports_data,
+        'dispatches': dispatch_data,
+        'summary': {
+            'total_vehicles': total_vehicles,
+            'active_incidents': active_incidents,
+            'active_dispatches': len(dispatch_data)
+        }
+    })
+
 @app.route('/api/stats')
 def get_stats():
     """API for Advanced Analysis Charts"""

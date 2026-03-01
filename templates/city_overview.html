@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Traffic Vision AI | City Overview</title>
+    <title>Traffic Vision AI | City Surveillance</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -12,13 +12,33 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
-        .map-wrapper {
+        /* ===== City Overview Layout ===== */
+        .city-layout {
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            min-height: 100vh;
+            gap: 0;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+
+        .city-main {
             position: relative;
-            height: calc(100vh - 120px);
-            width: 100%;
-            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            margin-left: 1rem;
+            gap: 0;
+        }
+
+        /* ===== Full-Screen Map ===== */
+        .map-container {
+            position: relative;
+            flex: 1;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--card-border);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            min-height: calc(100vh - 2rem);
         }
 
         #city-map {
@@ -27,57 +47,608 @@
             z-index: 1;
         }
 
-        .map-overlay {
+        /* ===== Floating HUD Panels ===== */
+        .hud-panel {
             position: absolute;
-            top: 20px;
-            left: 20px;
             z-index: 1000;
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: blur(10px);
-            padding: 1.5rem;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(7, 11, 20, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 14px;
             color: #fff;
-            width: 300px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), inset 0 0 30px rgba(59, 130, 246, 0.04);
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
-        .pulse-marker {
-            width: 20px;
-            height: 20px;
+        .hud-panel:hover {
+            border-color: rgba(59, 130, 246, 0.35);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(59, 130, 246, 0.08);
+        }
+
+        /* ===== Top Status HUD ===== */
+        .hud-status-bar {
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 28px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .hud-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .hud-stat .hud-value {
+            font-size: 1.35rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        .hud-stat .hud-label {
+            font-size: 0.6rem;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .hud-divider {
+            width: 1px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* ===== Left Control Panel ===== */
+        .hud-controls {
+            top: 80px;
+            left: 16px;
+            width: 280px;
+            padding: 18px;
+        }
+
+        .hud-controls h3 {
+            margin: 0 0 14px 0;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-controls h3 i {
+            font-size: 0.75rem;
+        }
+
+        /* Junction Status List */
+        .junction-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .junction-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .junction-item:hover {
+            background: rgba(59, 130, 246, 0.08);
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateX(2px);
+        }
+
+        .junction-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: var(--accent);
-            box-shadow: 0 0 0 rgba(59, 130, 246, 0.4);
-            animation: pulse 2s infinite;
+            flex-shrink: 0;
+            transition: all 0.3s;
         }
 
-        .pulse-marker.danger {
-            background: var(--danger);
-            box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+        .junction-dot.green {
+            background: var(--success);
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
         }
 
-        .pulse-marker.warning {
+        .junction-dot.yellow {
             background: var(--warning);
-            box-shadow: 0 0 0 rgba(245, 158, 11, 0.4);
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
         }
 
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(var(--marker-rgb), 0.7);
+        .junction-dot.red {
+            background: var(--danger);
+            box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+        }
+
+        .junction-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .junction-name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .junction-meta {
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        .junction-count {
+            font-size: 1rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            min-width: 24px;
+            text-align: right;
+        }
+
+        /* Layer Toggles */
+        .layer-section h3 {
+            margin: 0 0 10px 0;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .layer-toggle-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .layer-toggle-label i {
+            font-size: 0.75rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* Mini Toggle Switch */
+        .mini-toggle {
+            position: relative;
+            width: 36px;
+            height: 20px;
+        }
+
+        .mini-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .mini-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: 0.3s;
+        }
+
+        .mini-slider::before {
+            content: '';
+            position: absolute;
+            height: 14px;
+            width: 14px;
+            left: 2px;
+            bottom: 2px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .mini-toggle input:checked+.mini-slider {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent);
+        }
+
+        .mini-toggle input:checked+.mini-slider::before {
+            transform: translateX(16px);
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        /* ===== Bottom Right Event Feed ===== */
+        .hud-feed {
+            bottom: 16px;
+            right: 16px;
+            width: 320px;
+            max-height: 320px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .hud-feed h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.8rem;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .feed-scroll {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            max-height: 240px;
+        }
+
+        .feed-item {
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border-left: 3px solid var(--text-secondary);
+            font-size: 0.72rem;
+            animation: feedSlideIn 0.3s ease;
+        }
+
+        .feed-item.incident {
+            border-left-color: var(--danger);
+            background: rgba(239, 68, 68, 0.05);
+        }
+
+        .feed-item.dispatch {
+            border-left-color: var(--accent);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .feed-item.signal {
+            border-left-color: var(--success);
+        }
+
+        .feed-item.emergency {
+            border-left-color: var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .feed-time {
+            font-size: 0.62rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .feed-msg {
+            color: var(--text-primary);
+            line-height: 1.35;
+        }
+
+        @keyframes feedSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(10px);
             }
 
-            70% {
-                box-shadow: 0 0 0 20px rgba(var(--marker-rgb), 0);
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* ===== Leaflet Custom Popups ===== */
+        .leaflet-popup-content-wrapper {
+            background: rgba(7, 11, 20, 0.92) !important;
+            color: #fff !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+            backdrop-filter: blur(10px);
+        }
+
+        .leaflet-popup-tip {
+            background: rgba(7, 11, 20, 0.92) !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+        }
+
+        .leaflet-popup-content {
+            margin: 12px 16px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.82rem !important;
+            line-height: 1.5 !important;
+        }
+
+        .popup-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .popup-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .popup-badge.green {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .popup-badge.yellow {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .popup-badge.red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .popup-row strong {
+            color: var(--text-primary);
+        }
+
+        /* ===== Map Pulse Markers ===== */
+        .map-junction-marker {
+            position: relative;
+        }
+
+        .marker-core {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 12px currentColor;
+            transition: all 0.5s ease;
+        }
+
+        .marker-ring {
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            opacity: 0;
+            animation: markerPulse 2s infinite;
+        }
+
+        @keyframes markerPulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
             }
 
             100% {
-                box-shadow: 0 0 0 0 rgba(var(--marker-rgb), 0);
+                transform: scale(2.2);
+                opacity: 0;
+            }
+        }
+
+        /* Incident Marker */
+        .incident-marker {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(239, 68, 68, 0.6);
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            animation: incidentPulse 1.5s infinite;
+        }
+
+        @keyframes incidentPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Hospital Marker */
+        .hospital-marker {
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            border-radius: 8px;
+            border: 2px solid rgba(59, 130, 246, 0.8);
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+        }
+
+        /* Heatmap Zone */
+        .heat-zone {
+            border-radius: 50%;
+            opacity: 0.25;
+            filter: blur(2px);
+        }
+
+        /* ===== GPS Banner ===== */
+        .gps-banner {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(7, 11, 20, 0.85);
+            backdrop-filter: blur(10px);
+            color: var(--accent);
+            padding: 10px 24px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            z-index: 1000;
+            pointer-events: none;
+            letter-spacing: 0.8px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .gps-banner i {
+            animation: spinSlow 2s linear infinite;
+        }
+
+        @keyframes spinSlow {
+            from {
+                transform: rotate(0);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ===== Bottom Left Legend ===== */
+        .hud-legend {
+            bottom: 16px;
+            left: 16px;
+            padding: 14px 18px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .legend-square {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        /* ===== Live Clock ===== */
+        .hud-clock {
+            top: 16px;
+            right: 16px;
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-clock .clock-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 8px var(--success);
+            animation: clockBlink 2s infinite;
+        }
+
+        @keyframes clockBlink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .hud-clock .clock-time {
+            font-size: 0.9rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.5px;
+        }
+
+        .hud-clock .clock-label {
+            font-size: 0.6rem;
+            color: var(--text-secondary);
+            letter-spacing: 1px;
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 900px) {
+            .city-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .city-layout .sidebar {
+                display: none;
+            }
+
+            .city-main {
+                margin-left: 0;
+            }
+
+            .hud-controls {
+                display: none;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="app-container">
+    <div class="city-layout">
         <!-- Side Navigation -->
         <aside class="sidebar glass-panel">
             <div class="logo-area">
@@ -123,206 +694,621 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <header class="top-bar glass-panel" style="margin-bottom: 20px;">
-                <h2 style="margin:0;font-size:1.4rem;"><i class="fas fa-globe-asia" style="color:var(--accent);"></i>
-                    City-Wide Surveillance</h2>
-            </header>
-
-            <div class="glass-panel map-wrapper">
+        <!-- Main Map Area -->
+        <div class="city-main">
+            <div class="map-container">
                 <div id="city-map"></div>
-                <div class="map-overlay">
-                    <h3
-                        style="margin-top:0; border-bottom:1px solid rgba(255,255,255,0.1); padding-bottom:10px; margin-bottom:15px;">
-                        <i class="fas fa-chart-pie"></i> Map Status
-                    </h3>
 
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span>Green Nodes (Low Traffic)</span>
-                        <strong style="color:var(--success)" id="green-count">0</strong>
+                <!-- HUD: Top Status Bar -->
+                <div class="hud-panel hud-status-bar" id="hud-status">
+                    <div class="hud-stat">
+                        <span class="hud-value" id="hud-vehicles" style="color:var(--accent);">0</span>
+                        <span class="hud-label">Vehicles</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-                        <span>Yellow Nodes (Medium)</span>
-                        <strong style="color:var(--warning)" id="yellow-count">0</strong>
+                    <div class="hud-divider"></div>
+                    <div class="hud-stat">
+                        <span class="hud-value" id="hud-incidents" style="color:var(--danger);">0</span>
+                        <span class="hud-label">Incidents</span>
                     </div>
-                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
-                        <span>Red Nodes (High/Accident)</span>
-                        <strong style="color:var(--danger)" id="red-count">0</strong>
+                    <div class="hud-divider"></div>
+                    <div class="hud-stat">
+                        <span class="hud-value" id="hud-dispatches" style="color:var(--warning);">0</span>
+                        <span class="hud-label">Dispatches</span>
+                    </div>
+                    <div class="hud-divider"></div>
+                    <div class="hud-stat">
+                        <span class="hud-value" id="hud-green-lanes" style="color:var(--success);">0</span>
+                        <span class="hud-label">Green Lanes</span>
+                    </div>
+                </div>
+
+                <!-- HUD: Live Clock -->
+                <div class="hud-panel hud-clock" id="hud-clock">
+                    <div class="clock-dot"></div>
+                    <div>
+                        <div class="clock-time" id="city-clock">--:--:--</div>
+                        <div class="clock-label">LIVE FEED</div>
+                    </div>
+                </div>
+
+                <!-- HUD: Left Control Panel -->
+                <div class="hud-panel hud-controls" id="hud-controls">
+                    <h3><i class="fas fa-broadcast-tower"></i> Junction Monitor</h3>
+
+                    <div class="junction-list" id="junction-list">
+                        <div class="junction-item" onclick="flyToJunction(0)">
+                            <div class="junction-dot" id="jdot-0"></div>
+                            <div class="junction-info">
+                                <div class="junction-name">Lane 01 — Junction Alpha</div>
+                                <div class="junction-meta" id="jmeta-0">Connecting...</div>
+                            </div>
+                            <div class="junction-count" id="jcount-0">—</div>
+                        </div>
+                        <div class="junction-item" onclick="flyToJunction(1)">
+                            <div class="junction-dot" id="jdot-1"></div>
+                            <div class="junction-info">
+                                <div class="junction-name">Lane 02 — Junction Beta</div>
+                                <div class="junction-meta" id="jmeta-1">Connecting...</div>
+                            </div>
+                            <div class="junction-count" id="jcount-1">—</div>
+                        </div>
+                        <div class="junction-item" onclick="flyToJunction(2)">
+                            <div class="junction-dot" id="jdot-2"></div>
+                            <div class="junction-info">
+                                <div class="junction-name">Lane 03 — Junction Gamma</div>
+                                <div class="junction-meta" id="jmeta-2">Connecting...</div>
+                            </div>
+                            <div class="junction-count" id="jcount-2">—</div>
+                        </div>
+                        <div class="junction-item" onclick="flyToJunction(3)">
+                            <div class="junction-dot" id="jdot-3"></div>
+                            <div class="junction-info">
+                                <div class="junction-name">Lane 04 — Junction Delta</div>
+                                <div class="junction-meta" id="jmeta-3">Connecting...</div>
+                            </div>
+                            <div class="junction-count" id="jcount-3">—</div>
+                        </div>
                     </div>
 
-                    <button class="btn-primary" style="width:100%;" onclick="resetMapView();">Reset View</button>
+                    <div class="layer-section">
+                        <h3><i class="fas fa-layer-group"></i> Map Layers</h3>
+
+                        <div class="layer-toggle">
+                            <label class="layer-toggle-label" for="toggle-heatmap">
+                                <i class="fas fa-fire" style="color:#f97316;"></i> Traffic Heatmap
+                            </label>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="toggle-heatmap" checked>
+                                <span class="mini-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="layer-toggle">
+                            <label class="layer-toggle-label" for="toggle-incidents">
+                                <i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i> Incidents
+                            </label>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="toggle-incidents" checked>
+                                <span class="mini-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="layer-toggle">
+                            <label class="layer-toggle-label" for="toggle-dispatches">
+                                <i class="fas fa-truck-medical" style="color:var(--accent);"></i> Dispatch Routes
+                            </label>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="toggle-dispatches" checked>
+                                <span class="mini-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary"
+                        style="width:100%; margin-top:14px; font-size:0.78rem; padding:10px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px;"
+                        onclick="resetMapView();">
+                        <i class="fas fa-crosshairs"></i> Re-center Map
+                    </button>
+                </div>
+
+                <!-- HUD: Bottom Left Legend -->
+                <div class="hud-panel hud-legend">
+                    <div class="legend-items">
+                        <div class="legend-item">
+                            <div class="legend-dot"
+                                style="background:var(--success); box-shadow:0 0 6px var(--success);"></div> Low Traffic
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot"
+                                style="background:var(--warning); box-shadow:0 0 6px var(--warning);"></div> Medium
+                            Traffic
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-dot" style="background:var(--danger); box-shadow:0 0 6px var(--danger);">
+                            </div> High Traffic
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-square" style="background:var(--danger); opacity:0.7;"></div>
+                            <i class="fas fa-exclamation-triangle" style="font-size:0.65rem; color:var(--danger);"></i>
+                            Accident Report
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-square" style="background:var(--accent); opacity:0.7;"></div>
+                            <i class="fas fa-hospital" style="font-size:0.65rem; color:var(--accent);"></i>
+                            Dispatch Target
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HUD: Bottom Right Event Feed -->
+                <div class="hud-panel hud-feed" id="hud-feed">
+                    <h3><i class="fas fa-satellite-dish"></i> Live Event Feed</h3>
+                    <div class="feed-scroll" id="feed-scroll">
+                        <div class="feed-item signal">
+                            <div class="feed-time">System</div>
+                            <div class="feed-msg">City Surveillance initialized. Acquiring GPS...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GPS Banner (shown during init) -->
+                <div class="gps-banner" id="gps-banner">
+                    <i class="fas fa-satellite-dish"></i>
+                    Acquiring GPS coordinates...
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 
     <script>
-        // --- Map Init ---
-        const map = L.map('city-map').setView([20.5937, 78.9629], 5); // Broad India default before geolocation loads
+        // ===== CONFIG =====
+        const JUNCTION_NAMES = [
+            'Junction Alpha', 'Junction Beta',
+            'Junction Gamma', 'Junction Delta'
+        ];
+        const OFFSETS = [
+            { dlat: 0.004, dlng: 0.004 },
+            { dlat: 0.004, dlng: -0.004 },
+            { dlat: -0.004, dlng: 0.004 },
+            { dlat: -0.004, dlng: -0.004 }
+        ];
+        const POLL_INTERVAL = 2000;
 
+        // ===== STATE =====
+        let map;
+        let userLat = null, userLng = null;
+        let junctions = [];
+        const junctionMarkers = {};
+        const heatZones = {};
+        const incidentMarkers = {};
+        const dispatchLines = {};
+        const dispatchHospitalMarkers = {};
+        let prevAmbulanceMode = false;
+        let knownReportIds = new Set();
+        let knownDispatchIds = new Set();
+
+        // ===== MAP INIT =====
+        map = L.map('city-map', {
+            zoomControl: false,
+            attributionControl: false
+        }).setView([20.5937, 78.9629], 5);
+
+        // Dark tile layer
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap &copy; CARTO',
             subdomains: 'abcd',
-            maxZoom: 20
+            maxZoom: 19
         }).addTo(map);
 
-        const markers = {};
-        let junctions = [];
-        let userLat = null, userLng = null;
+        // Attribution (bottom-right, subtle)
+        L.control.attribution({ prefix: false, position: 'bottomright' })
+            .addAttribution('&copy; <a href="https://carto.com" style="color:#64748b;">CARTO</a>')
+            .addTo(map);
 
-        // Junction names for system labeling
-        const junctionNames = [
-            'Intersection Alpha (Lane 1)',
-            'Intersection Beta (Lane 2)',
-            'Intersection Gamma (Lane 3)',
-            'Intersection Delta (Lane 4)'
-        ];
+        // Zoom control top-right
+        L.control.zoom({ position: 'topright' }).addTo(map);
 
-        // Offsets in degrees (~100-400m spread) to place 4 junctions around real location
-        const offsets = [
-            { dlat: 0.003, dlng: 0.003 },
-            { dlat: 0.003, dlng: -0.003 },
-            { dlat: -0.003, dlng: 0.003 },
-            { dlat: -0.003, dlng: -0.003 }
-        ];
-
-        function initMarkersAtLocation(lat, lng) {
-            userLat = lat;
-            userLng = lng;
-
-            // Remove any old markers
-            Object.values(markers).forEach(m => map.removeLayer(m));
-            Object.keys(markers).forEach(k => delete markers[k]);
-
-            junctions = offsets.map((o, i) => ({
-                id: i,
-                lat: lat + o.dlat,
-                lng: lng + o.dlng,
-                name: junctionNames[i]
-            }));
-
-            junctions.forEach(j => {
-                const icon = L.divIcon({
-                    className: 'custom-div-icon',
-                    html: `<div class="pulse-marker" style="background: #94a3b8; --marker-rgb: 148, 163, 184;"></div>`,
-                    iconSize: [20, 20],
-                    iconAnchor: [10, 10]
-                });
-                markers[j.id] = L.marker([j.lat, j.lng], { icon: icon }).addTo(map)
-                    .bindPopup(`<strong style="color:#000;">${j.name}</strong><br><span style="color:#333;">Connecting to live feed...</span>`);
-            });
-
-            map.flyTo([lat, lng], 15, { animate: true, duration: 1.5 });
-            updateCityMap();
+        // ===== CLOCK =====
+        function updateClock() {
+            document.getElementById('city-clock').textContent =
+                new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         }
+        setInterval(updateClock, 1000);
+        updateClock();
 
-        function resetMapView() {
-            if (userLat && userLng) {
-                map.flyTo([userLat, userLng], 15, { animate: true, duration: 2 });
-            }
-        }
-
-        // --- Geolocation: detect real user location ---
-        const locatingBanner = document.createElement('div');
-        locatingBanner.id = 'loc-banner';
-        locatingBanner.style.cssText = 'position:absolute;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.8);color:#60a5fa;padding:8px 20px;border-radius:8px;font-size:0.8rem;z-index:1000;pointer-events:none;letter-spacing:1px;';
-        locatingBanner.innerHTML = '<i class="fas fa-satellite-dish"></i> &nbsp; Acquiring GPS coordinates...';
-        document.getElementById('city-map').appendChild(locatingBanner);
+        // ===== GEOLOCATION =====
+        const gpsBanner = document.getElementById('gps-banner');
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    locatingBanner.remove();
-                    initMarkersAtLocation(pos.coords.latitude, pos.coords.longitude);
+                    gpsBanner.remove();
+                    initMap(pos.coords.latitude, pos.coords.longitude);
+                    addFeedItem('signal', 'GPS lock acquired. Map centered on your location.');
                 },
-                (err) => {
-                    // Geolocation denied or failed — fall back to IP-based detection
-                    locatingBanner.innerHTML = '<i class="fas fa-map-pin"></i> &nbsp; GPS denied — using network location...';
+                () => {
+                    gpsBanner.innerHTML = '<i class="fas fa-map-pin"></i> GPS denied — using network location...';
                     fetch('https://ipapi.co/json/')
                         .then(r => r.json())
                         .then(d => {
-                            locatingBanner.remove();
-                            initMarkersAtLocation(d.latitude, d.longitude);
+                            gpsBanner.remove();
+                            initMap(d.latitude, d.longitude);
+                            addFeedItem('signal', 'Network location acquired.');
                         })
                         .catch(() => {
-                            // Final fallback: use a sensible default
-                            locatingBanner.remove();
-                            initMarkersAtLocation(10.8505, 76.2711); // Kerala, India default
+                            gpsBanner.remove();
+                            initMap(10.8505, 76.2711);
+                            addFeedItem('signal', 'Using default coordinates (Kerala, India).');
                         });
                 },
                 { timeout: 8000 }
             );
         } else {
-            locatingBanner.innerHTML = '<i class="fas fa-exclamation-triangle"></i> &nbsp; Geolocation not supported';
-            setTimeout(() => locatingBanner.remove(), 3000);
-            initMarkersAtLocation(10.8505, 76.2711);
+            gpsBanner.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Geolocation not supported';
+            setTimeout(() => gpsBanner.remove(), 3000);
+            initMap(10.8505, 76.2711);
         }
 
-        // --- Real-time Status from /api/status ---
-        function updateCityMap() {
-            fetch('/api/status')
+        // ===== INIT MAP WITH LOCATION =====
+        function initMap(lat, lng) {
+            userLat = lat;
+            userLng = lng;
+
+            // Create junctions around user location
+            junctions = OFFSETS.map((o, i) => ({
+                id: i,
+                lat: lat + o.dlat,
+                lng: lng + o.dlng,
+                name: JUNCTION_NAMES[i]
+            }));
+
+            // Create junction markers
+            junctions.forEach(j => {
+                const icon = L.divIcon({
+                    className: 'map-junction-marker',
+                    html: `<div class="marker-core" style="background:#94a3b8; color:#94a3b8;"></div>
+                           <div class="marker-ring" style="color:#94a3b8;"></div>`,
+                    iconSize: [18, 18],
+                    iconAnchor: [9, 9]
+                });
+
+                junctionMarkers[j.id] = L.marker([j.lat, j.lng], { icon })
+                    .addTo(map)
+                    .bindPopup(buildJunctionPopup(j.name, 'Initializing...', 0, 'LOW'));
+
+                // Add heatmap zone (circle)
+                heatZones[j.id] = L.circle([j.lat, j.lng], {
+                    radius: 250,
+                    fillColor: '#94a3b8',
+                    fillOpacity: 0.12,
+                    stroke: false,
+                    className: 'heat-zone'
+                }).addTo(map);
+            });
+
+            map.flyTo([lat, lng], 15, { animate: true, duration: 1.8 });
+
+            // Start polling
+            fetchCityData();
+            setInterval(fetchCityData, POLL_INTERVAL);
+        }
+
+        // ===== BUILD POPUP HTML =====
+        function buildJunctionPopup(name, signalState, count, density) {
+            const colorMap = { 'GREEN': 'green', 'YELLOW': 'yellow', 'RED': 'red' };
+            const badgeClass = colorMap[signalState] || 'green';
+            return `
+                <div class="popup-title">
+                    <i class="fas fa-broadcast-tower" style="color:var(--accent);"></i>
+                    ${name}
+                </div>
+                <div class="popup-row"><span>Signal</span><span class="popup-badge ${badgeClass}">${signalState}</span></div>
+                <div class="popup-row"><span>Vehicles</span><strong>${count}</strong></div>
+                <div class="popup-row"><span>Density</span><strong>${density}</strong></div>
+            `;
+        }
+
+        // ===== FLY TO JUNCTION =====
+        function flyToJunction(id) {
+            if (junctions[id]) {
+                map.flyTo([junctions[id].lat, junctions[id].lng], 17, { animate: true, duration: 1.2 });
+                setTimeout(() => {
+                    if (junctionMarkers[id]) junctionMarkers[id].openPopup();
+                }, 1200);
+            }
+        }
+
+        function resetMapView() {
+            if (userLat && userLng) {
+                map.flyTo([userLat, userLng], 15, { animate: true, duration: 1.5 });
+            }
+        }
+
+        // ===== DATA FETCH & UPDATE =====
+        function fetchCityData() {
+            fetch('/api/city_map_data')
                 .then(res => res.json())
                 .then(data => {
-                    let greenNodes = 0;
-                    let yellowNodes = 0;
-                    let redNodes = 0;
-
-                    const states = data.signal_status.states;
-                    const ambulance = data.signal_status.ambulance_mode;
-                    const lanes = data.lane_data;
-
-                    for (let i = 0; i < 4; i++) {
-                        let statusColor = '#10b981';
-                        let rgb = '16, 185, 129';
-                        let label = 'Low Traffic (Green)';
-
-                        const laneInfo = lanes[i.toString()];
-                        const count = laneInfo ? laneInfo.count : 0;
-                        const density = laneInfo ? laneInfo.density : 'LOW';
-
-                        if (ambulance) {
-                            statusColor = '#ef4444';
-                            rgb = '239, 68, 68';
-                            label = 'EMERGENCY OVERRIDE';
-                            redNodes++;
-                        } else if (density === 'HIGH' || states[i] === 'RED') {
-                            statusColor = '#ef4444';
-                            rgb = '239, 68, 68';
-                            label = 'High Traffic (Red)';
-                            redNodes++;
-                        } else if (density === 'MEDIUM' || states[i] === 'YELLOW') {
-                            statusColor = '#f59e0b';
-                            rgb = '245, 158, 11';
-                            label = 'Medium Traffic (Yellow)';
-                            yellowNodes++;
-                        } else {
-                            greenNodes++;
-                        }
-
-                        if (markers[i]) {
-                            const newIcon = L.divIcon({
-                                className: 'custom-div-icon',
-                                html: `<div class="pulse-marker" style="background: ${statusColor}; --marker-rgb: ${rgb};"></div>`,
-                                iconSize: [20, 20],
-                                iconAnchor: [10, 10]
-                            });
-                            markers[i].setIcon(newIcon);
-                            markers[i].setPopupContent(
-                                `<strong style="color:#000;">${junctions[i] ? junctions[i].name : 'Lane ' + (i + 1)}</strong><br><span style="color:#333;">Status: ${label}<br>Vehicles Detected: ${count}</span>`
-                            );
-                        }
-                    }
-
-                    document.getElementById('green-count').innerText = greenNodes;
-                    document.getElementById('yellow-count').innerText = yellowNodes;
-                    document.getElementById('red-count').innerText = redNodes;
+                    updateJunctions(data.signal_status, data.lane_data);
+                    updateIncidents(data.reports);
+                    updateDispatches(data.dispatches);
+                    updateHUD(data.summary, data.signal_status);
+                    checkEmergency(data.signal_status);
                 })
-                .catch(err => console.error('Error fetching status:', err));
+                .catch(err => console.error('City map data error:', err));
         }
 
-        // Poll every 2 seconds
-        setInterval(updateCityMap, 2000);
+        // ===== UPDATE JUNCTIONS =====
+        function updateJunctions(signalStatus, laneData) {
+            const states = signalStatus.states;
+            const ambulance = signalStatus.ambulance_mode;
+            let greenCount = 0;
+
+            for (let i = 0; i < 4; i++) {
+                const laneInfo = laneData[i.toString()] || {};
+                const count = laneInfo.count || 0;
+                const density = laneInfo.density || 'LOW';
+                const state = states[i];
+
+                // Determine color
+                let color, cssColor, heatColor, heatOpacity, statusLabel;
+
+                if (ambulance) {
+                    color = 'red'; cssColor = '#ef4444'; heatColor = '#ef4444'; heatOpacity = 0.25;
+                    statusLabel = 'EMERGENCY';
+                } else if (density === 'HIGH' || state === 'RED') {
+                    color = 'red'; cssColor = '#ef4444'; heatColor = '#ef4444'; heatOpacity = 0.2;
+                    statusLabel = `${state} · ${density}`;
+                } else if (density === 'MEDIUM' || state === 'YELLOW') {
+                    color = 'yellow'; cssColor = '#f59e0b'; heatColor = '#f59e0b'; heatOpacity = 0.15;
+                    statusLabel = `${state} · ${density}`;
+                } else {
+                    color = 'green'; cssColor = '#10b981'; heatColor = '#10b981'; heatOpacity = 0.1;
+                    statusLabel = `${state} · ${density}`;
+                    greenCount++;
+                }
+
+                // Update marker icon
+                if (junctionMarkers[i]) {
+                    const newIcon = L.divIcon({
+                        className: 'map-junction-marker',
+                        html: `<div class="marker-core" style="background:${cssColor}; color:${cssColor};"></div>
+                               <div class="marker-ring" style="color:${cssColor};"></div>`,
+                        iconSize: [18, 18],
+                        iconAnchor: [9, 9]
+                    });
+                    junctionMarkers[i].setIcon(newIcon);
+                    junctionMarkers[i].setPopupContent(
+                        buildJunctionPopup(JUNCTION_NAMES[i], state, count, density)
+                    );
+                }
+
+                // Update heatmap zone
+                if (heatZones[i] && document.getElementById('toggle-heatmap').checked) {
+                    heatZones[i].setStyle({
+                        fillColor: heatColor,
+                        fillOpacity: heatOpacity,
+                        radius: 250 + count * 8
+                    });
+                    heatZones[i].setRadius(250 + Math.min(count * 10, 500));
+                }
+
+                // Update sidebar junction list
+                const dot = document.getElementById(`jdot-${i}`);
+                const meta = document.getElementById(`jmeta-${i}`);
+                const jcount = document.getElementById(`jcount-${i}`);
+
+                if (dot) {
+                    dot.className = `junction-dot ${color}`;
+                }
+                if (meta) {
+                    meta.textContent = statusLabel;
+                }
+                if (jcount) {
+                    jcount.textContent = count;
+                    jcount.style.color = cssColor;
+                }
+            }
+
+            document.getElementById('hud-green-lanes').textContent = greenCount;
+        }
+
+        // ===== UPDATE INCIDENTS =====
+        function updateIncidents(reports) {
+            if (!document.getElementById('toggle-incidents').checked) {
+                // Remove all incident markers
+                Object.values(incidentMarkers).forEach(m => map.removeLayer(m));
+                return;
+            }
+
+            const currentIds = new Set();
+
+            reports.forEach(r => {
+                if (r.latitude && r.longitude) {
+                    currentIds.add(r.id);
+
+                    if (!incidentMarkers[r.id]) {
+                        // New incident — add marker
+                        const statusColor = r.status === 'Resolved' ? '#10b981' :
+                            r.status === 'Verified' ? '#f59e0b' : '#ef4444';
+                        const statusIcon = r.status === 'Resolved' ? 'check-circle' :
+                            'exclamation-triangle';
+
+                        const icon = L.divIcon({
+                            className: '',
+                            html: `<div class="incident-marker" style="border-color:${statusColor}40; background:${statusColor}20; color:${statusColor};">
+                                     <i class="fas fa-${statusIcon}"></i>
+                                   </div>`,
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14]
+                        });
+
+                        incidentMarkers[r.id] = L.marker([r.latitude, r.longitude], { icon })
+                            .addTo(map)
+                            .bindPopup(`
+                                <div class="popup-title" style="color:${statusColor};">
+                                    <i class="fas fa-exclamation-triangle"></i> Incident #${r.id}
+                                </div>
+                                <div class="popup-row"><span>Location</span><strong>${r.location}</strong></div>
+                                <div class="popup-row"><span>Status</span><span class="popup-badge ${r.status === 'Resolved' ? 'green' : 'red'}">${r.status}</span></div>
+                                <div class="popup-row"><span>Reported</span><strong>${r.timestamp}</strong></div>
+                                ${r.description ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.1); font-size:0.72rem; color:var(--text-secondary);">${r.description}</div>` : ''}
+                            `);
+
+                        // Feed notification for new incidents
+                        if (!knownReportIds.has(r.id)) {
+                            knownReportIds.add(r.id);
+                            addFeedItem('incident', `New incident reported at ${r.location} (${r.status})`);
+                        }
+                    }
+                }
+            });
+
+            // Remove markers for incidents no longer in data
+            Object.keys(incidentMarkers).forEach(id => {
+                if (!currentIds.has(parseInt(id))) {
+                    map.removeLayer(incidentMarkers[id]);
+                    delete incidentMarkers[id];
+                }
+            });
+        }
+
+        // ===== UPDATE DISPATCHES =====
+        function updateDispatches(dispatches) {
+            if (!document.getElementById('toggle-dispatches').checked) {
+                Object.values(dispatchLines).forEach(l => map.removeLayer(l));
+                Object.values(dispatchHospitalMarkers).forEach(m => map.removeLayer(m));
+                return;
+            }
+
+            const currentIds = new Set();
+
+            dispatches.forEach(d => {
+                currentIds.add(d.id);
+
+                if (!dispatchLines[d.id] && d.hospital_lat && d.hospital_lng && d.accident_lat && d.accident_lng) {
+                    // Draw route line
+                    dispatchLines[d.id] = L.polyline(
+                        [[d.hospital_lat, d.hospital_lng], [d.accident_lat, d.accident_lng]],
+                        {
+                            color: '#3b82f6',
+                            weight: 3,
+                            dashArray: '8, 8',
+                            opacity: 0.7
+                        }
+                    ).addTo(map);
+
+                    // Hospital marker
+                    const hospIcon = L.divIcon({
+                        className: '',
+                        html: `<div class="hospital-marker"><i class="fas fa-hospital"></i></div>`,
+                        iconSize: [26, 26],
+                        iconAnchor: [13, 13]
+                    });
+
+                    dispatchHospitalMarkers[d.id] = L.marker([d.hospital_lat, d.hospital_lng], { icon: hospIcon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div class="popup-title" style="color:var(--accent);">
+                                <i class="fas fa-hospital"></i> ${d.hospital_name}
+                            </div>
+                            <div class="popup-row"><span>Status</span><span class="popup-badge" style="background:rgba(59,130,246,0.15); color:#3b82f6;">${d.status}</span></div>
+                            ${d.distance_km ? `<div class="popup-row"><span>Distance</span><strong>${d.distance_km.toFixed(1)} km</strong></div>` : ''}
+                            <div class="popup-row"><span>Dispatched</span><strong>${d.timestamp}</strong></div>
+                        `);
+
+                    // Feed notification
+                    if (!knownDispatchIds.has(d.id)) {
+                        knownDispatchIds.add(d.id);
+                        addFeedItem('dispatch', `Ambulance dispatched from ${d.hospital_name} — ${d.status}`);
+                    }
+                }
+            });
+
+            // Clean up removed dispatches
+            Object.keys(dispatchLines).forEach(id => {
+                if (!currentIds.has(parseInt(id))) {
+                    map.removeLayer(dispatchLines[id]);
+                    delete dispatchLines[id];
+                    if (dispatchHospitalMarkers[id]) {
+                        map.removeLayer(dispatchHospitalMarkers[id]);
+                        delete dispatchHospitalMarkers[id];
+                    }
+                }
+            });
+        }
+
+        // ===== UPDATE HUD =====
+        function updateHUD(summary, signalStatus) {
+            document.getElementById('hud-vehicles').textContent = summary.total_vehicles;
+            document.getElementById('hud-incidents').textContent = summary.active_incidents;
+            document.getElementById('hud-dispatches').textContent = summary.active_dispatches;
+        }
+
+        // ===== EMERGENCY CHECK =====
+        function checkEmergency(signalStatus) {
+            if (signalStatus.ambulance_mode && !prevAmbulanceMode) {
+                addFeedItem('emergency', 'EMERGENCY: Ambulance detected! Signal override active.');
+            } else if (!signalStatus.ambulance_mode && prevAmbulanceMode) {
+                addFeedItem('signal', 'Emergency mode deactivated. Signals resuming normal cycle.');
+            }
+            prevAmbulanceMode = signalStatus.ambulance_mode;
+        }
+
+        // ===== EVENT FEED =====
+        function addFeedItem(type, message) {
+            const feed = document.getElementById('feed-scroll');
+            const item = document.createElement('div');
+            item.className = `feed-item ${type}`;
+            const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            item.innerHTML = `<div class="feed-time">${time}</div><div class="feed-msg">${message}</div>`;
+            feed.insertBefore(item, feed.firstChild);
+
+            // Limit feed size
+            while (feed.children.length > 30) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        // ===== LAYER TOGGLE HANDLERS =====
+        document.getElementById('toggle-heatmap').addEventListener('change', (e) => {
+            Object.values(heatZones).forEach(z => {
+                if (e.target.checked) {
+                    if (!map.hasLayer(z)) map.addLayer(z);
+                } else {
+                    map.removeLayer(z);
+                }
+            });
+            addFeedItem('signal', `Heatmap layer ${e.target.checked ? 'enabled' : 'disabled'}.`);
+        });
+
+        document.getElementById('toggle-incidents').addEventListener('change', (e) => {
+            Object.values(incidentMarkers).forEach(m => {
+                if (e.target.checked) {
+                    if (!map.hasLayer(m)) map.addLayer(m);
+                } else {
+                    map.removeLayer(m);
+                }
+            });
+            addFeedItem('signal', `Incident markers ${e.target.checked ? 'shown' : 'hidden'}.`);
+        });
+
+        document.getElementById('toggle-dispatches').addEventListener('change', (e) => {
+            Object.values(dispatchLines).forEach(l => {
+                if (e.target.checked) {
+                    if (!map.hasLayer(l)) map.addLayer(l);
+                } else {
+                    map.removeLayer(l);
+                }
+            });
+            Object.values(dispatchHospitalMarkers).forEach(m => {
+                if (e.target.checked) {
+                    if (!map.hasLayer(m)) map.addLayer(m);
+                } else {
+                    map.removeLayer(m);
+                }
+            });
+            addFeedItem('signal', `Dispatch routes ${e.target.checked ? 'shown' : 'hidden'}.`);
+        });
     </script>
 </body>
 
