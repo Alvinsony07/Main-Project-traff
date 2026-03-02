@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- MarkerCluster for Kerala Signals -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     <style>
         /* ===== City Overview Layout ===== */
         .city-layout {
@@ -111,6 +115,18 @@
             left: 16px;
             width: 280px;
             padding: 18px;
+            max-height: calc(100vh - 110px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .hud-controls::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .hud-controls::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
         }
 
         .hud-controls h3 {
@@ -215,6 +231,11 @@
             align-items: center;
             justify-content: space-between;
             padding: 8px 0;
+            transition: opacity 0.3s;
+        }
+
+        .layer-toggle.disabled {
+            opacity: 0.45;
         }
 
         .layer-toggle-label {
@@ -223,6 +244,11 @@
             gap: 8px;
             font-size: 0.78rem;
             color: var(--text-secondary);
+            transition: color 0.3s;
+        }
+
+        .layer-toggle.active .layer-toggle-label {
+            color: var(--text-primary);
         }
 
         .layer-toggle-label i {
@@ -231,11 +257,50 @@
             text-align: center;
         }
 
+        /* Layer count badge */
+        .layer-count-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 18px;
+            padding: 0 5px;
+            border-radius: 9px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+            margin-left: 4px;
+            transition: all 0.3s;
+        }
+
+        .layer-count-badge.live {
+            background: rgba(59, 130, 246, 0.15);
+            color: var(--accent);
+        }
+
+        .layer-count-badge.danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+        }
+
+        .layer-count-badge.warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--warning);
+        }
+
+        .layer-count-badge.success {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--success);
+        }
+
         /* Mini Toggle Switch */
         .mini-toggle {
             position: relative;
             width: 36px;
             height: 20px;
+            flex-shrink: 0;
         }
 
         .mini-toggle input {
@@ -275,6 +340,49 @@
             transform: translateX(16px);
             background: var(--accent);
             box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        /* ===== Toast Notification ===== */
+        .layer-toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: rgba(7, 11, 20, 0.92);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            color: #f8fafc;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            border: 1px solid rgba(59, 130, 246, 0.25);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease, transform 0.35s ease;
+        }
+
+        .layer-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .layer-toast i {
+            font-size: 0.85rem;
+        }
+
+        .layer-toast .toast-on {
+            color: var(--success);
+        }
+
+        .layer-toast .toast-off {
+            color: var(--danger);
         }
 
         /* ===== Bottom Right Event Feed ===== */
@@ -550,7 +658,7 @@
         /* ===== Bottom Left Legend ===== */
         .hud-legend {
             bottom: 16px;
-            left: 16px;
+            left: 310px;
             padding: 14px 18px;
         }
 
@@ -580,6 +688,304 @@
             height: 10px;
             border-radius: 3px;
             flex-shrink: 0;
+        }
+
+        /* ===== Kerala Signal Markers ===== */
+        .signal-pin {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.6);
+            box-shadow: 0 0 8px currentColor;
+            transition: all 0.4s;
+        }
+
+        .signal-pin.sig-green {
+            background: #10b981;
+            color: #10b981;
+        }
+
+        .signal-pin.sig-yellow {
+            background: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .signal-pin.sig-red {
+            background: #ef4444;
+            color: #ef4444;
+        }
+
+        /* MarkerCluster dark theme */
+        .marker-cluster-small {
+            background: rgba(59, 130, 246, 0.25);
+        }
+
+        .marker-cluster-medium {
+            background: rgba(245, 158, 11, 0.25);
+        }
+
+        .marker-cluster-large {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .marker-cluster-small div,
+        .marker-cluster-medium div,
+        .marker-cluster-large div {
+            background: rgba(7, 11, 20, 0.85);
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            font-size: 0.75rem;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        /* Traffic Light Popup Widget */
+        .tl-popup {
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .tl-popup .tl-name {
+            font-weight: 700;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .tl-popup .tl-housing {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 5px;
+            background: #111827;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 10px 8px;
+            margin: 0 auto 10px;
+        }
+
+        .tl-popup .tl-light {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            margin: 0 auto;
+            transition: all 0.4s;
+        }
+
+        .tl-popup .tl-light.off {
+            opacity: 0.15;
+        }
+
+        .tl-popup .tl-light.on {
+            opacity: 1;
+            box-shadow: 0 0 14px currentColor;
+        }
+
+        .tl-popup .tl-red {
+            background: #ef4444;
+            color: #ef4444;
+        }
+
+        .tl-popup .tl-yellow {
+            background: #f59e0b;
+            color: #f59e0b;
+        }
+
+        .tl-popup .tl-green {
+            background: #10b981;
+            color: #10b981;
+        }
+
+        .tl-popup .tl-timer {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            margin: 4px 0;
+        }
+
+        .tl-popup .tl-state {
+            font-size: 0.7rem;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .tl-popup .tl-coords {
+            font-size: 0.6rem;
+            color: #64748b;
+            margin-top: 6px;
+        }
+
+        /* Loading spinner for signals */
+        .signal-loader {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            color: var(--accent);
+            padding: 6px 0;
+        }
+
+        .signal-loader i {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Map View Switcher */
+        .map-view-switcher {
+            margin-top: 14px;
+        }
+
+        .map-view-switcher h4 {
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .view-btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .view-btn {
+            padding: 8px 6px;
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.68rem;
+            font-weight: 600;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.25s ease;
+            letter-spacing: 0.3px;
+        }
+
+        .view-btn i {
+            font-size: 1rem;
+            opacity: 0.7;
+            transition: all 0.25s;
+        }
+
+        .view-btn:hover {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.15);
+            color: var(--text-primary);
+        }
+
+        .view-btn:hover i {
+            opacity: 1;
+        }
+
+        .view-btn.active {
+            background: rgba(99, 102, 241, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .view-btn.active i {
+            opacity: 1;
+            color: var(--accent);
+        }
+
+        /* Enhanced Popup Elements */
+        .tl-popup .tl-mode-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.6rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .tl-popup .tl-mode-badge.peak {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .tl-popup .tl-mode-badge.normal {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .tl-popup .tl-mode-badge.night {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+
+        .tl-popup .tl-mode-badge.late-night {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .tl-popup .tl-jtype {
+            font-size: 0.62rem;
+            color: #64748b;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .tl-popup .tl-progress {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 2px;
+            margin: 6px 0 2px;
+            overflow: hidden;
+        }
+
+        .tl-popup .tl-progress-bar {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 1s linear;
+        }
+
+        .tl-popup .tl-cycle-info {
+            font-size: 0.58rem;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2px;
+        }
+
+        /* Blinking yellow for late night */
+        .signal-pin.sig-blink {
+            background: #f59e0b;
+            color: #f59e0b;
+            animation: blinkYellow 1s infinite;
+        }
+
+        @keyframes blinkYellow {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.2;
+            }
         }
 
         /* ===== Live Clock ===== */
@@ -643,6 +1049,26 @@
             .hud-controls {
                 display: none;
             }
+        }
+
+        /* Junction Label Tooltips */
+        .junction-label-tooltip {
+            background: rgba(7, 11, 20, 0.85) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: #f8fafc !important;
+            border: 1px solid rgba(59, 130, 246, 0.3) !important;
+            border-radius: 6px !important;
+            padding: 4px 10px !important;
+            font-family: 'Inter', sans-serif !important;
+            font-size: 0.7rem !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        .junction-label-tooltip::before {
+            border-top-color: rgba(7, 11, 20, 0.85) !important;
         }
     </style>
 </head>
@@ -720,6 +1146,11 @@
                         <span class="hud-value" id="hud-green-lanes" style="color:var(--success);">0</span>
                         <span class="hud-label">Green Lanes</span>
                     </div>
+                    <div class="hud-divider"></div>
+                    <div class="hud-stat">
+                        <span class="hud-value" id="hud-signal-count" style="color:var(--purple);">—</span>
+                        <span class="hud-label">Kerala Signals</span>
+                    </div>
                 </div>
 
                 <!-- HUD: Live Clock -->
@@ -739,7 +1170,7 @@
                         <div class="junction-item" onclick="flyToJunction(0)">
                             <div class="junction-dot" id="jdot-0"></div>
                             <div class="junction-info">
-                                <div class="junction-name">Lane 01 — Junction Alpha</div>
+                                <div class="junction-name">Lane 01 — Zone</div>
                                 <div class="junction-meta" id="jmeta-0">Connecting...</div>
                             </div>
                             <div class="junction-count" id="jcount-0">—</div>
@@ -747,7 +1178,7 @@
                         <div class="junction-item" onclick="flyToJunction(1)">
                             <div class="junction-dot" id="jdot-1"></div>
                             <div class="junction-info">
-                                <div class="junction-name">Lane 02 — Junction Beta</div>
+                                <div class="junction-name">Lane 02 — Zone</div>
                                 <div class="junction-meta" id="jmeta-1">Connecting...</div>
                             </div>
                             <div class="junction-count" id="jcount-1">—</div>
@@ -755,7 +1186,7 @@
                         <div class="junction-item" onclick="flyToJunction(2)">
                             <div class="junction-dot" id="jdot-2"></div>
                             <div class="junction-info">
-                                <div class="junction-name">Lane 03 — Junction Gamma</div>
+                                <div class="junction-name">Lane 03 — Zone</div>
                                 <div class="junction-meta" id="jmeta-2">Connecting...</div>
                             </div>
                             <div class="junction-count" id="jcount-2">—</div>
@@ -763,7 +1194,7 @@
                         <div class="junction-item" onclick="flyToJunction(3)">
                             <div class="junction-dot" id="jdot-3"></div>
                             <div class="junction-info">
-                                <div class="junction-name">Lane 04 — Junction Delta</div>
+                                <div class="junction-name">Lane 04 — Zone</div>
                                 <div class="junction-meta" id="jmeta-3">Connecting...</div>
                             </div>
                             <div class="junction-count" id="jcount-3">—</div>
@@ -773,9 +1204,11 @@
                     <div class="layer-section">
                         <h3><i class="fas fa-layer-group"></i> Map Layers</h3>
 
-                        <div class="layer-toggle">
+                        <div class="layer-toggle active" id="layer-row-heatmap">
                             <label class="layer-toggle-label" for="toggle-heatmap">
                                 <i class="fas fa-fire" style="color:#f97316;"></i> Traffic Heatmap
+                                <span class="layer-count-badge warning" id="badge-heatmap"
+                                    title="Active heatmap zones">4</span>
                             </label>
                             <label class="mini-toggle">
                                 <input type="checkbox" id="toggle-heatmap" checked>
@@ -783,9 +1216,11 @@
                             </label>
                         </div>
 
-                        <div class="layer-toggle">
+                        <div class="layer-toggle active" id="layer-row-incidents">
                             <label class="layer-toggle-label" for="toggle-incidents">
                                 <i class="fas fa-exclamation-triangle" style="color:var(--danger);"></i> Incidents
+                                <span class="layer-count-badge danger" id="badge-incidents"
+                                    title="Active incidents on map">0</span>
                             </label>
                             <label class="mini-toggle">
                                 <input type="checkbox" id="toggle-incidents" checked>
@@ -793,15 +1228,42 @@
                             </label>
                         </div>
 
-                        <div class="layer-toggle">
+                        <div class="layer-toggle active" id="layer-row-dispatches">
                             <label class="layer-toggle-label" for="toggle-dispatches">
                                 <i class="fas fa-truck-medical" style="color:var(--accent);"></i> Dispatch Routes
+                                <span class="layer-count-badge live" id="badge-dispatches"
+                                    title="Active dispatch routes">0</span>
                             </label>
                             <label class="mini-toggle">
                                 <input type="checkbox" id="toggle-dispatches" checked>
                                 <span class="mini-slider"></span>
                             </label>
                         </div>
+
+                        <div class="layer-toggle" id="layer-row-junctions">
+                            <label class="layer-toggle-label" for="toggle-junction-labels">
+                                <i class="fas fa-tags" style="color:var(--success);"></i> Junction Labels
+                                <span class="layer-count-badge success" id="badge-junctions"
+                                    title="Junction label tooltips">4</span>
+                            </label>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="toggle-junction-labels">
+                                <span class="mini-slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="layer-toggle" id="layer-row-kerala">
+                            <label class="layer-toggle-label" for="toggle-kerala-signals">
+                                <i class="fas fa-traffic-light" style="color:var(--purple);"></i> Kerala Signals
+                                <span class="layer-count-badge" id="badge-kerala"
+                                    title="Kerala traffic signals loaded">—</span>
+                            </label>
+                            <label class="mini-toggle">
+                                <input type="checkbox" id="toggle-kerala-signals">
+                                <span class="mini-slider"></span>
+                            </label>
+                        </div>
+                        <div id="signal-loader-area"></div>
                     </div>
 
                     <button class="btn-primary"
@@ -809,6 +1271,25 @@
                         onclick="resetMapView();">
                         <i class="fas fa-crosshairs"></i> Re-center Map
                     </button>
+
+                    <!-- Map View Switcher -->
+                    <div class="map-view-switcher">
+                        <h4><i class="fas fa-layer-group"></i> Map View</h4>
+                        <div class="view-btn-grid">
+                            <button class="view-btn active" id="view-colorful" onclick="switchMapView('colorful')">
+                                <i class="fas fa-palette"></i> Colorful
+                            </button>
+                            <button class="view-btn" id="view-satellite" onclick="switchMapView('satellite')">
+                                <i class="fas fa-satellite"></i> Satellite
+                            </button>
+                            <button class="view-btn" id="view-terrain" onclick="switchMapView('terrain')">
+                                <i class="fas fa-mountain"></i> Terrain
+                            </button>
+                            <button class="view-btn" id="view-dark" onclick="switchMapView('dark')">
+                                <i class="fas fa-moon"></i> Night
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- HUD: Bottom Left Legend -->
@@ -837,6 +1318,10 @@
                             <i class="fas fa-hospital" style="font-size:0.65rem; color:var(--accent);"></i>
                             Dispatch Target
                         </div>
+                        <div class="legend-item">
+                            <i class="fas fa-traffic-light" style="font-size:0.7rem; color:var(--purple);"></i>
+                            Kerala Signal (AI-Estimated)
+                        </div>
                     </div>
                 </div>
 
@@ -863,8 +1348,8 @@
     <script>
         // ===== CONFIG =====
         const JUNCTION_NAMES = [
-            'Junction Alpha', 'Junction Beta',
-            'Junction Gamma', 'Junction Delta'
+            'Lane 01 Zone', 'Lane 02 Zone',
+            'Lane 03 Zone', 'Lane 04 Zone'
         ];
         const OFFSETS = [
             { dlat: 0.004, dlng: 0.004 },
@@ -879,6 +1364,7 @@
         let userLat = null, userLng = null;
         let junctions = [];
         const junctionMarkers = {};
+        const junctionLabelTooltips = {};
         const heatZones = {};
         const incidentMarkers = {};
         const dispatchLines = {};
@@ -887,25 +1373,162 @@
         let knownReportIds = new Set();
         let knownDispatchIds = new Set();
 
+        // ===== LAYER STATE PERSISTENCE =====
+        const LAYER_STORAGE_KEY = 'trafficVisionAI_layerStates';
+
+        function saveLayerStates() {
+            const states = {
+                heatmap: document.getElementById('toggle-heatmap').checked,
+                incidents: document.getElementById('toggle-incidents').checked,
+                dispatches: document.getElementById('toggle-dispatches').checked,
+                junctionLabels: document.getElementById('toggle-junction-labels').checked,
+                keralaSignals: document.getElementById('toggle-kerala-signals').checked
+            };
+            try { localStorage.setItem(LAYER_STORAGE_KEY, JSON.stringify(states)); } catch (e) { }
+        }
+
+        function restoreLayerStates() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(LAYER_STORAGE_KEY));
+                if (!saved) return;
+                if (typeof saved.heatmap === 'boolean') document.getElementById('toggle-heatmap').checked = saved.heatmap;
+                if (typeof saved.incidents === 'boolean') document.getElementById('toggle-incidents').checked = saved.incidents;
+                if (typeof saved.dispatches === 'boolean') document.getElementById('toggle-dispatches').checked = saved.dispatches;
+                if (typeof saved.junctionLabels === 'boolean') document.getElementById('toggle-junction-labels').checked = saved.junctionLabels;
+                if (typeof saved.keralaSignals === 'boolean') document.getElementById('toggle-kerala-signals').checked = saved.keralaSignals;
+                // Update visual active classes
+                updateAllToggleRowVisuals();
+            } catch (e) { }
+        }
+
+        function updateToggleRowVisual(toggleId, rowId) {
+            const toggle = document.getElementById(toggleId);
+            const row = document.getElementById(rowId);
+            if (toggle && row) {
+                if (toggle.checked) {
+                    row.classList.add('active');
+                    row.classList.remove('disabled');
+                } else {
+                    row.classList.remove('active');
+                    row.classList.add('disabled');
+                }
+            }
+        }
+
+        function updateAllToggleRowVisuals() {
+            updateToggleRowVisual('toggle-heatmap', 'layer-row-heatmap');
+            updateToggleRowVisual('toggle-incidents', 'layer-row-incidents');
+            updateToggleRowVisual('toggle-dispatches', 'layer-row-dispatches');
+            updateToggleRowVisual('toggle-junction-labels', 'layer-row-junctions');
+            updateToggleRowVisual('toggle-kerala-signals', 'layer-row-kerala');
+        }
+
+        // ===== TOAST NOTIFICATION =====
+        let toastTimeout = null;
+        function showLayerToast(layerName, isOn, icon) {
+            let toast = document.getElementById('layer-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'layer-toast';
+                toast.className = 'layer-toast';
+                document.body.appendChild(toast);
+            }
+            const stateClass = isOn ? 'toast-on' : 'toast-off';
+            const stateIcon = isOn ? 'fa-eye' : 'fa-eye-slash';
+            const stateText = isOn ? 'Enabled' : 'Disabled';
+            toast.innerHTML = `<i class="fas ${icon}" style="opacity:0.7;"></i> <span>${layerName}</span> <i class="fas ${stateIcon} ${stateClass}"></i> <span style="font-weight:700;">${stateText}</span>`;
+            toast.classList.add('show');
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => toast.classList.remove('show'), 2200);
+        }
+
+        // ===== BADGE UPDATE HELPERS =====
+        function updateBadge(id, count, className) {
+            const badge = document.getElementById(id);
+            if (badge) {
+                badge.textContent = count;
+                if (className) badge.className = 'layer-count-badge ' + className;
+            }
+        }
+
+        // Restore saved layer states on page load
+        restoreLayerStates();
+
         // ===== MAP INIT =====
         map = L.map('city-map', {
             zoomControl: false,
             attributionControl: false
         }).setView([20.5937, 78.9629], 5);
 
-        // Dark tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            subdomains: 'abcd',
-            maxZoom: 19
-        }).addTo(map);
+        // ===== MAP TILE LAYERS =====
+        const tileLayers = {
+            colorful: L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+                subdomains: '0123',
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            }),
+            satellite: L.layerGroup([
+                L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    subdomains: '0123',
+                    attribution: 'Imagery &copy; Google'
+                })
+            ]),
+            terrain: L.tileLayer('https://mt{s}.google.com/vt/lyrs=p&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                subdomains: '0123',
+                attribution: 'Terrain &copy; Google'
+            }),
+            dark: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                subdomains: 'abcd',
+                maxZoom: 20,
+                attribution: '&copy; <a href="https://carto.com">CARTO</a> Dark'
+            })
+        };
 
-        // Attribution (bottom-right, subtle)
-        L.control.attribution({ prefix: false, position: 'bottomright' })
-            .addAttribution('&copy; <a href="https://carto.com" style="color:#64748b;">CARTO</a>')
-            .addTo(map);
+        // Default: colorful view
+        let currentTileKey = 'colorful';
+        tileLayers.colorful.addTo(map);
+
+        // Attribution
+        L.control.attribution({ prefix: false, position: 'bottomright' }).addTo(map);
 
         // Zoom control top-right
         L.control.zoom({ position: 'topright' }).addTo(map);
+
+        // ===== SWITCH MAP VIEW =====
+        function switchMapView(viewName) {
+            if (viewName === currentTileKey) return;
+
+            // Remove current tile layer
+            if (tileLayers[currentTileKey]) {
+                map.removeLayer(tileLayers[currentTileKey]);
+            }
+
+            // Add new tile layer (at bottom)
+            if (tileLayers[viewName]) {
+                tileLayers[viewName].addTo(map);
+                // Move to back so overlays stay on top
+                if (tileLayers[viewName].bringToBack) {
+                    tileLayers[viewName].bringToBack();
+                } else if (tileLayers[viewName].eachLayer) {
+                    tileLayers[viewName].eachLayer(l => {
+                        if (l.bringToBack) l.bringToBack();
+                    });
+                }
+            }
+
+            currentTileKey = viewName;
+
+            // Update active button
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            const btn = document.getElementById('view-' + viewName);
+            if (btn) btn.classList.add('active');
+
+            // Log to feed
+            const labels = { colorful: 'Colorful', satellite: 'Satellite', terrain: 'Terrain', dark: 'Night Mode' };
+            addFeedItem('signal', `Map view switched to ${labels[viewName] || viewName}.`);
+        }
 
         // ===== CLOCK =====
         function updateClock() {
@@ -975,15 +1598,35 @@
                     .addTo(map)
                     .bindPopup(buildJunctionPopup(j.name, 'Initializing...', 0, 'LOW'));
 
-                // Add heatmap zone (circle)
+                // Add heatmap zone (circle) — only if heatmap toggle is on
                 heatZones[j.id] = L.circle([j.lat, j.lng], {
                     radius: 250,
                     fillColor: '#94a3b8',
                     fillOpacity: 0.12,
                     stroke: false,
                     className: 'heat-zone'
-                }).addTo(map);
+                });
+                if (document.getElementById('toggle-heatmap').checked) {
+                    heatZones[j.id].addTo(map);
+                }
+
+                // Permanent label tooltip for Junction Labels toggle
+                junctionLabelTooltips[j.id] = L.tooltip({
+                    permanent: true,
+                    direction: 'top',
+                    offset: [0, -14],
+                    className: 'junction-label-tooltip'
+                }).setContent(`<b>${j.name}</b>`).setLatLng([j.lat, j.lng]);
+
+                if (document.getElementById('toggle-junction-labels').checked) {
+                    junctionLabelTooltips[j.id].addTo(map);
+                }
             });
+
+            // If Kerala Signals toggle was saved as ON, auto-load
+            if (document.getElementById('toggle-kerala-signals').checked) {
+                loadKeralaSignals();
+            }
 
             map.flyTo([lat, lng], 15, { animate: true, duration: 1.8 });
 
@@ -1082,14 +1725,20 @@
                     );
                 }
 
-                // Update heatmap zone
-                if (heatZones[i] && document.getElementById('toggle-heatmap').checked) {
+                // Update heatmap zone — always update style, only show if toggled on
+                if (heatZones[i]) {
                     heatZones[i].setStyle({
                         fillColor: heatColor,
-                        fillOpacity: heatOpacity,
-                        radius: 250 + count * 8
+                        fillOpacity: heatOpacity
                     });
                     heatZones[i].setRadius(250 + Math.min(count * 10, 500));
+
+                    const heatOn = document.getElementById('toggle-heatmap').checked;
+                    if (heatOn && !map.hasLayer(heatZones[i])) {
+                        map.addLayer(heatZones[i]);
+                    } else if (!heatOn && map.hasLayer(heatZones[i])) {
+                        map.removeLayer(heatZones[i]);
+                    }
                 }
 
                 // Update sidebar junction list
@@ -1110,16 +1759,14 @@
             }
 
             document.getElementById('hud-green-lanes').textContent = greenCount;
+
+            // Update heatmap badge with total vehicle count across zones
+            updateBadge('badge-heatmap', Object.keys(heatZones).length, 'warning');
         }
 
         // ===== UPDATE INCIDENTS =====
         function updateIncidents(reports) {
-            if (!document.getElementById('toggle-incidents').checked) {
-                // Remove all incident markers
-                Object.values(incidentMarkers).forEach(m => map.removeLayer(m));
-                return;
-            }
-
+            const showIncidents = document.getElementById('toggle-incidents').checked;
             const currentIds = new Set();
 
             reports.forEach(r => {
@@ -1127,7 +1774,7 @@
                     currentIds.add(r.id);
 
                     if (!incidentMarkers[r.id]) {
-                        // New incident — add marker
+                        // New incident — create marker
                         const statusColor = r.status === 'Resolved' ? '#10b981' :
                             r.status === 'Verified' ? '#f59e0b' : '#ef4444';
                         const statusIcon = r.status === 'Resolved' ? 'check-circle' :
@@ -1143,7 +1790,6 @@
                         });
 
                         incidentMarkers[r.id] = L.marker([r.latitude, r.longitude], { icon })
-                            .addTo(map)
                             .bindPopup(`
                                 <div class="popup-title" style="color:${statusColor};">
                                     <i class="fas fa-exclamation-triangle"></i> Incident #${r.id}
@@ -1154,10 +1800,22 @@
                                 ${r.description ? `<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.1); font-size:0.72rem; color:var(--text-secondary);">${r.description}</div>` : ''}
                             `);
 
+                        // Only add to map if toggle is on
+                        if (showIncidents) {
+                            incidentMarkers[r.id].addTo(map);
+                        }
+
                         // Feed notification for new incidents
                         if (!knownReportIds.has(r.id)) {
                             knownReportIds.add(r.id);
                             addFeedItem('incident', `New incident reported at ${r.location} (${r.status})`);
+                        }
+                    } else {
+                        // Existing marker — ensure visibility matches toggle
+                        if (showIncidents && !map.hasLayer(incidentMarkers[r.id])) {
+                            incidentMarkers[r.id].addTo(map);
+                        } else if (!showIncidents && map.hasLayer(incidentMarkers[r.id])) {
+                            map.removeLayer(incidentMarkers[r.id]);
                         }
                     }
                 }
@@ -1166,20 +1824,19 @@
             // Remove markers for incidents no longer in data
             Object.keys(incidentMarkers).forEach(id => {
                 if (!currentIds.has(parseInt(id))) {
-                    map.removeLayer(incidentMarkers[id]);
+                    if (map.hasLayer(incidentMarkers[id])) map.removeLayer(incidentMarkers[id]);
                     delete incidentMarkers[id];
                 }
             });
+
+            // Update incident badge
+            updateBadge('badge-incidents', Object.keys(incidentMarkers).length,
+                Object.keys(incidentMarkers).length > 0 ? 'danger' : '');
         }
 
         // ===== UPDATE DISPATCHES =====
         function updateDispatches(dispatches) {
-            if (!document.getElementById('toggle-dispatches').checked) {
-                Object.values(dispatchLines).forEach(l => map.removeLayer(l));
-                Object.values(dispatchHospitalMarkers).forEach(m => map.removeLayer(m));
-                return;
-            }
-
+            const showDispatches = document.getElementById('toggle-dispatches').checked;
             const currentIds = new Set();
 
             dispatches.forEach(d => {
@@ -1195,7 +1852,7 @@
                             dashArray: '8, 8',
                             opacity: 0.7
                         }
-                    ).addTo(map);
+                    );
 
                     // Hospital marker
                     const hospIcon = L.divIcon({
@@ -1206,7 +1863,6 @@
                     });
 
                     dispatchHospitalMarkers[d.id] = L.marker([d.hospital_lat, d.hospital_lng], { icon: hospIcon })
-                        .addTo(map)
                         .bindPopup(`
                             <div class="popup-title" style="color:var(--accent);">
                                 <i class="fas fa-hospital"></i> ${d.hospital_name}
@@ -1216,10 +1872,25 @@
                             <div class="popup-row"><span>Dispatched</span><strong>${d.timestamp}</strong></div>
                         `);
 
+                    // Only add to map if toggle is on
+                    if (showDispatches) {
+                        dispatchLines[d.id].addTo(map);
+                        dispatchHospitalMarkers[d.id].addTo(map);
+                    }
+
                     // Feed notification
                     if (!knownDispatchIds.has(d.id)) {
                         knownDispatchIds.add(d.id);
                         addFeedItem('dispatch', `Ambulance dispatched from ${d.hospital_name} — ${d.status}`);
+                    }
+                } else if (dispatchLines[d.id]) {
+                    // Existing dispatch — sync visibility with toggle
+                    if (showDispatches && !map.hasLayer(dispatchLines[d.id])) {
+                        dispatchLines[d.id].addTo(map);
+                        if (dispatchHospitalMarkers[d.id]) dispatchHospitalMarkers[d.id].addTo(map);
+                    } else if (!showDispatches && map.hasLayer(dispatchLines[d.id])) {
+                        map.removeLayer(dispatchLines[d.id]);
+                        if (dispatchHospitalMarkers[d.id]) map.removeLayer(dispatchHospitalMarkers[d.id]);
                     }
                 }
             });
@@ -1227,14 +1898,18 @@
             // Clean up removed dispatches
             Object.keys(dispatchLines).forEach(id => {
                 if (!currentIds.has(parseInt(id))) {
-                    map.removeLayer(dispatchLines[id]);
+                    if (map.hasLayer(dispatchLines[id])) map.removeLayer(dispatchLines[id]);
                     delete dispatchLines[id];
                     if (dispatchHospitalMarkers[id]) {
-                        map.removeLayer(dispatchHospitalMarkers[id]);
+                        if (map.hasLayer(dispatchHospitalMarkers[id])) map.removeLayer(dispatchHospitalMarkers[id]);
                         delete dispatchHospitalMarkers[id];
                     }
                 }
             });
+
+            // Update dispatch badge
+            updateBadge('badge-dispatches', Object.keys(dispatchLines).length,
+                Object.keys(dispatchLines).length > 0 ? 'live' : '');
         }
 
         // ===== UPDATE HUD =====
@@ -1269,45 +1944,484 @@
             }
         }
 
-        // ===== LAYER TOGGLE HANDLERS =====
+        // ===== LAYER TOGGLE HANDLERS (Enhanced) =====
         document.getElementById('toggle-heatmap').addEventListener('change', (e) => {
+            const on = e.target.checked;
             Object.values(heatZones).forEach(z => {
-                if (e.target.checked) {
+                if (on) {
                     if (!map.hasLayer(z)) map.addLayer(z);
                 } else {
-                    map.removeLayer(z);
+                    if (map.hasLayer(z)) map.removeLayer(z);
                 }
             });
-            addFeedItem('signal', `Heatmap layer ${e.target.checked ? 'enabled' : 'disabled'}.`);
+            updateToggleRowVisual('toggle-heatmap', 'layer-row-heatmap');
+            saveLayerStates();
+            showLayerToast('Traffic Heatmap', on, 'fa-fire');
+            addFeedItem('signal', `Heatmap layer ${on ? 'enabled' : 'disabled'}.`);
         });
 
         document.getElementById('toggle-incidents').addEventListener('change', (e) => {
+            const on = e.target.checked;
             Object.values(incidentMarkers).forEach(m => {
-                if (e.target.checked) {
+                if (on) {
                     if (!map.hasLayer(m)) map.addLayer(m);
                 } else {
-                    map.removeLayer(m);
+                    if (map.hasLayer(m)) map.removeLayer(m);
                 }
             });
-            addFeedItem('signal', `Incident markers ${e.target.checked ? 'shown' : 'hidden'}.`);
+            updateToggleRowVisual('toggle-incidents', 'layer-row-incidents');
+            saveLayerStates();
+            showLayerToast('Incidents', on, 'fa-exclamation-triangle');
+            addFeedItem('signal', `Incident markers ${on ? 'shown' : 'hidden'}.`);
         });
 
         document.getElementById('toggle-dispatches').addEventListener('change', (e) => {
+            const on = e.target.checked;
             Object.values(dispatchLines).forEach(l => {
-                if (e.target.checked) {
+                if (on) {
                     if (!map.hasLayer(l)) map.addLayer(l);
                 } else {
-                    map.removeLayer(l);
+                    if (map.hasLayer(l)) map.removeLayer(l);
                 }
             });
             Object.values(dispatchHospitalMarkers).forEach(m => {
-                if (e.target.checked) {
+                if (on) {
                     if (!map.hasLayer(m)) map.addLayer(m);
                 } else {
-                    map.removeLayer(m);
+                    if (map.hasLayer(m)) map.removeLayer(m);
                 }
             });
-            addFeedItem('signal', `Dispatch routes ${e.target.checked ? 'shown' : 'hidden'}.`);
+            updateToggleRowVisual('toggle-dispatches', 'layer-row-dispatches');
+            saveLayerStates();
+            showLayerToast('Dispatch Routes', on, 'fa-truck-medical');
+            addFeedItem('signal', `Dispatch routes ${on ? 'shown' : 'hidden'}.`);
+        });
+
+        // ===== JUNCTION LABELS TOGGLE =====
+        document.getElementById('toggle-junction-labels').addEventListener('change', (e) => {
+            const on = e.target.checked;
+            Object.values(junctionLabelTooltips).forEach(t => {
+                if (on) {
+                    if (!map.hasLayer(t)) t.addTo(map);
+                } else {
+                    if (map.hasLayer(t)) map.removeLayer(t);
+                }
+            });
+            updateToggleRowVisual('toggle-junction-labels', 'layer-row-junctions');
+            saveLayerStates();
+            showLayerToast('Junction Labels', on, 'fa-tags');
+            addFeedItem('signal', `Junction labels ${on ? 'shown' : 'hidden'}.`);
+        });
+
+        // ===================================================================
+        // ===== KERALA TRAFFIC SIGNALS — AI-ADAPTIVE ENGINE =====
+        // ===================================================================
+        // AI-Estimated signal states using Indian traffic timing standards.
+        // Real junction locations from OpenStreetMap Overpass API.
+        // Signal phase timing uses IRC:93-1985 guidelines with:
+        //   - Junction priority classification (Major / Standard / Minor)
+        //   - Time-of-day adaptive modes (Peak Rush / Normal / Night / Late Night)
+        //   - Variable cycle lengths per junction priority
+        //   - Late-night blinking yellow mode
+        //   - Realistic Indian traffic timing profiles
+
+        const KERALA_BBOX = '8.17,74.85,12.79,77.42';
+
+        // Indian traffic timing profiles (seconds) per junction type & mode
+        // Based on real Indian signal timing standards (IRC:93-1985 guidelines)
+        const TIMING_PROFILES = {
+            // Major junctions (NH/SH intersections, city centers)
+            MAJOR: {
+                PEAK: { GREEN: 55, YELLOW: 5, RED: 50 },  // Long cycles for heavy traffic
+                NORMAL: { GREEN: 40, YELLOW: 4, RED: 35 },
+                NIGHT: { GREEN: 30, YELLOW: 4, RED: 20 },
+                LATE_NIGHT: null  // Blinking yellow
+            },
+            // Standard junctions (district roads, town intersections)
+            STANDARD: {
+                PEAK: { GREEN: 45, YELLOW: 4, RED: 40 },
+                NORMAL: { GREEN: 35, YELLOW: 4, RED: 30 },
+                NIGHT: { GREEN: 25, YELLOW: 3, RED: 18 },
+                LATE_NIGHT: null
+            },
+            // Minor junctions (local roads, residential areas)
+            MINOR: {
+                PEAK: { GREEN: 35, YELLOW: 3, RED: 30 },
+                NORMAL: { GREEN: 25, YELLOW: 3, RED: 22 },
+                NIGHT: { GREEN: 20, YELLOW: 3, RED: 15 },
+                LATE_NIGHT: null
+            }
+        };
+
+        // Time-of-day mode icons and labels
+        const MODE_CONFIG = {
+            PEAK: { label: 'PEAK RUSH HOUR', icon: 'fa-bolt', badge: 'peak', desc: 'Extended cycles — High traffic volume' },
+            NORMAL: { label: 'NORMAL FLOW', icon: 'fa-road', badge: 'normal', desc: 'Standard adaptive timing' },
+            NIGHT: { label: 'NIGHT MODE', icon: 'fa-moon', badge: 'night', desc: 'Reduced cycles — Low traffic' },
+            LATE_NIGHT: { label: 'LATE NIGHT BLINK', icon: 'fa-eye', badge: 'late-night', desc: 'Flashing yellow — Caution mode' }
+        };
+
+        let keralaSignalCluster = null;
+        let keralaSignalsLoaded = false;
+        let keralaSignalData = [];
+        let signalTickInterval = null;
+
+        // Determine current traffic mode based on time of day
+        function getCurrentMode() {
+            const hour = new Date().getHours();
+            // Peak: 7-10 AM and 5-8 PM
+            if ((hour >= 7 && hour < 10) || (hour >= 17 && hour < 20)) return 'PEAK';
+            // Late Night: 12 AM - 5 AM
+            if (hour >= 0 && hour < 5) return 'LATE_NIGHT';
+            // Night: 10 PM - 12 AM or 5 AM - 6 AM
+            if (hour >= 22 || hour < 6) return 'NIGHT';
+            // Normal: everything else
+            return 'NORMAL';
+        }
+
+        // Classify junction type based on OSM tags and node type
+        function classifyJunction(el) {
+            const tags = el.tags || {};
+            const hw = tags.highway || '';
+            const jn = tags.junction || '';
+
+            // Explicit traffic signals on major roads
+            if (hw === 'traffic_signals' || hw === 'motorway_junction') {
+                // Use name presence as indicator of importance
+                if (tags.name || tags['name:en']) return 'MAJOR';
+                return 'STANDARD';
+            }
+
+            // Roundabouts and named junctions
+            if (hw === 'mini_roundabout' || jn === 'roundabout' || jn === 'yes') {
+                return tags.name ? 'MAJOR' : 'STANDARD';
+            }
+
+            // Crossings with signals
+            if (tags.crossing === 'traffic_signals' || tags.traffic_signals) {
+                return 'STANDARD';
+            }
+
+            // Stop signs and give_way are typically minor
+            if (hw === 'stop' || hw === 'give_way') {
+                return 'MINOR';
+            }
+
+            // Fallback based on node ID hash
+            const hash = el.id % 100;
+            if (hash < 15) return 'MAJOR';
+            if (hash < 55) return 'STANDARD';
+            return 'MINOR';
+        }
+
+        function getJunctionLabel(type) {
+            switch (type) {
+                case 'MAJOR': return { label: 'Major Junction (NH/SH)', icon: 'fa-road', color: '#ef4444' };
+                case 'STANDARD': return { label: 'Standard Junction', icon: 'fa-code-branch', color: '#3b82f6' };
+                case 'MINOR': return { label: 'Minor Junction', icon: 'fa-circle-dot', color: '#64748b' };
+                default: return { label: 'Junction', icon: 'fa-map-pin', color: '#94a3b8' };
+            }
+        }
+
+        // Get the active timing profile for a junction
+        function getActiveProfile(junctionType) {
+            const mode = getCurrentMode();
+            const profile = TIMING_PROFILES[junctionType][mode];
+            return { profile, mode };
+        }
+
+        // Compute signal state for a given junction
+        function getSignalState(sig) {
+            const { profile, mode } = getActiveProfile(sig.junctionType);
+
+            // Late Night = blinking yellow
+            if (!profile) {
+                return {
+                    state: 'BLINK_YELLOW',
+                    remaining: 0,
+                    color: '#f59e0b',
+                    mode: mode,
+                    totalCycle: 0,
+                    elapsed: 0,
+                    phaseDuration: 0
+                };
+            }
+
+            const totalCycle = profile.GREEN + profile.YELLOW + profile.RED;
+            const now = Math.floor(Date.now() / 1000);
+            const t = (now + sig.offset) % totalCycle;
+
+            let state, remaining, color, phaseDuration;
+
+            if (t < profile.GREEN) {
+                state = 'GREEN';
+                remaining = profile.GREEN - t;
+                color = '#10b981';
+                phaseDuration = profile.GREEN;
+            } else if (t < profile.GREEN + profile.YELLOW) {
+                state = 'YELLOW';
+                remaining = profile.GREEN + profile.YELLOW - t;
+                color = '#f59e0b';
+                phaseDuration = profile.YELLOW;
+            } else {
+                state = 'RED';
+                remaining = totalCycle - t;
+                color = '#ef4444';
+                phaseDuration = profile.RED;
+            }
+
+            return { state, remaining, color, mode, totalCycle, elapsed: phaseDuration - remaining, phaseDuration };
+        }
+
+        // Build enhanced traffic light popup
+        function buildSignalPopup(sig) {
+            const s = getSignalState(sig);
+            const modeConf = MODE_CONFIG[s.mode];
+            const jLabel = getJunctionLabel(sig.junctionType);
+
+            // Blinking yellow mode
+            if (s.state === 'BLINK_YELLOW') {
+                return `
+                    <div class="tl-popup">
+                        <div class="tl-name"><i class="fas fa-traffic-light"></i> ${sig.name}</div>
+                        <div class="tl-jtype"><i class="fas ${jLabel.icon}" style="color:${jLabel.color}"></i> ${jLabel.label}</div>
+                        <div class="tl-mode-badge ${modeConf.badge}"><i class="fas ${modeConf.icon}"></i> ${modeConf.label}</div>
+                        <div class="tl-housing">
+                            <div class="tl-light tl-red off"></div>
+                            <div class="tl-light tl-yellow on" style="animation: blinkYellow 1s infinite;"></div>
+                            <div class="tl-light tl-green off"></div>
+                        </div>
+                        <div class="tl-timer" style="color:#f59e0b;">— —</div>
+                        <div class="tl-state" style="color:#f59e0b;">CAUTION</div>
+                        <div style="font-size:0.6rem; color:#64748b; margin-top:6px;">${modeConf.desc}</div>
+                        <div style="font-size:0.52rem; color:#334155; margin-top:3px; text-align:center; opacity:0.7;"><i class="fas fa-microchip"></i> AI-Estimated timing (IRC:93-1985)</div>
+                        <div class="tl-coords">${sig.lat.toFixed(5)}, ${sig.lng.toFixed(5)}</div>
+                    </div>
+                `;
+            }
+
+            // Normal cycling mode
+            const progressPct = Math.round((s.elapsed / s.phaseDuration) * 100);
+            const { profile } = getActiveProfile(sig.junctionType);
+
+            return `
+                <div class="tl-popup">
+                    <div class="tl-name"><i class="fas fa-traffic-light"></i> ${sig.name}</div>
+                    <div class="tl-jtype"><i class="fas ${jLabel.icon}" style="color:${jLabel.color}"></i> ${jLabel.label}</div>
+                    <div class="tl-mode-badge ${modeConf.badge}"><i class="fas ${modeConf.icon}"></i> ${modeConf.label}</div>
+                    <div class="tl-housing">
+                        <div class="tl-light tl-red ${s.state === 'RED' ? 'on' : 'off'}"></div>
+                        <div class="tl-light tl-yellow ${s.state === 'YELLOW' ? 'on' : 'off'}"></div>
+                        <div class="tl-light tl-green ${s.state === 'GREEN' ? 'on' : 'off'}"></div>
+                    </div>
+                    <div class="tl-timer" style="color:${s.color};">${s.remaining}s</div>
+                    <div class="tl-state" style="color:${s.color};">${s.state}</div>
+                    <div class="tl-progress"><div class="tl-progress-bar" style="width:${progressPct}%; background:${s.color};"></div></div>
+                    <div class="tl-cycle-info">
+                        <span>G:${profile.GREEN}s Y:${profile.YELLOW}s R:${profile.RED}s</span>
+                        <span>Cycle: ${s.totalCycle}s</span>
+                    </div>
+                    <div style="font-size:0.58rem; color:#475569; margin-top:4px; text-align:center;"><i class="fas fa-brain" style="color:var(--purple);"></i> ${modeConf.desc}</div>
+                    <div style="font-size:0.52rem; color:#334155; margin-top:3px; text-align:center; opacity:0.7;"><i class="fas fa-microchip"></i> AI-Estimated timing (IRC:93-1985)</div>
+                    <div class="tl-coords">${sig.lat.toFixed(5)}, ${sig.lng.toFixed(5)}</div>
+                </div>
+            `;
+        }
+
+        // Load Kerala signals from Overpass API
+        async function loadKeralaSignals() {
+            if (keralaSignalsLoaded) {
+                if (map.hasLayer(keralaSignalCluster)) return;
+                map.addLayer(keralaSignalCluster);
+                return;
+            }
+
+            const loaderArea = document.getElementById('signal-loader-area');
+            loaderArea.innerHTML = '<div class="signal-loader"><i class="fas fa-spinner"></i> Scanning Kerala junction database...</div>';
+            addFeedItem('signal', 'Querying OpenStreetMap for all junction data across Kerala...');
+
+            // Expanded query: traffic signals + crossings + roundabouts + junctions + stop/yield
+            const query = `
+                [out:json][timeout:90];
+                (
+                  node["highway"="traffic_signals"](${KERALA_BBOX});
+                  node["crossing"="traffic_signals"](${KERALA_BBOX});
+                  node["traffic_signals"](${KERALA_BBOX});
+                  node["highway"="mini_roundabout"](${KERALA_BBOX});
+                  node["highway"="motorway_junction"](${KERALA_BBOX});
+                  node["junction"](${KERALA_BBOX});
+                  node["highway"="stop"](${KERALA_BBOX});
+                  node["highway"="give_way"](${KERALA_BBOX});
+                );
+                out body;
+            `;
+
+            try {
+                const res = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    body: 'data=' + encodeURIComponent(query),
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+                });
+                const data = await res.json();
+
+                if (!data.elements || data.elements.length === 0) {
+                    loaderArea.innerHTML = '<div class="signal-loader" style="color:var(--warning);"><i class="fas fa-exclamation-triangle" style="animation:none;"></i> No signals found.</div>';
+                    addFeedItem('signal', 'No traffic signals found in Kerala region.');
+                    return;
+                }
+
+                // Classify and process signal data
+                let majorCount = 0, stdCount = 0, minorCount = 0;
+
+                keralaSignalData = data.elements.map(el => {
+                    const junctionType = classifyJunction(el);
+                    if (junctionType === 'MAJOR') majorCount++;
+                    else if (junctionType === 'STANDARD') stdCount++;
+                    else minorCount++;
+
+                    // Use a profile-aware offset
+                    const { profile } = getActiveProfile(junctionType);
+                    const totalCycle = profile ? (profile.GREEN + profile.YELLOW + profile.RED) : 70;
+
+                    // Determine name from various OSM tags
+                    let name = '';
+                    if (el.tags) {
+                        name = el.tags.name || el.tags['name:en'] || el.tags.description || el.tags.ref || '';
+                    }
+                    if (!name) {
+                        const hw = (el.tags && el.tags.highway) || '';
+                        const typeLabel = hw === 'traffic_signals' ? 'Signal' :
+                            hw === 'mini_roundabout' ? 'Roundabout' :
+                                hw === 'motorway_junction' ? 'Flyover Jn' :
+                                    hw === 'stop' ? 'Stop Jn' :
+                                        hw === 'give_way' ? 'Yield Jn' :
+                                            (el.tags && el.tags.junction) ? 'Junction' :
+                                                'Signal';
+                        name = `${typeLabel} #${el.id}`;
+                    }
+
+                    return {
+                        id: el.id,
+                        lat: el.lat,
+                        lng: el.lon,
+                        name: name,
+                        junctionType: junctionType,
+                        offset: (el.id % totalCycle)
+                    };
+                });
+
+                // Create MarkerCluster group
+                keralaSignalCluster = L.markerClusterGroup({
+                    maxClusterRadius: 50,
+                    spiderfyOnMaxZoom: true,
+                    showCoverageOnHover: false,
+                    disableClusteringAtZoom: 16,
+                    iconCreateFunction: function (cluster) {
+                        const count = cluster.getChildCount();
+                        let size = 'small';
+                        if (count > 50) size = 'large';
+                        else if (count > 20) size = 'medium';
+                        return L.divIcon({
+                            html: '<div>' + count + '</div>',
+                            className: 'marker-cluster marker-cluster-' + size,
+                            iconSize: [40, 40]
+                        });
+                    }
+                });
+
+                // Add markers
+                keralaSignalData.forEach(sig => {
+                    const s = getSignalState(sig);
+                    let sigClass;
+                    if (s.state === 'BLINK_YELLOW') sigClass = 'sig-blink';
+                    else sigClass = s.state === 'GREEN' ? 'sig-green' :
+                        s.state === 'YELLOW' ? 'sig-yellow' : 'sig-red';
+
+                    const icon = L.divIcon({
+                        className: '',
+                        html: `<div class="signal-pin ${sigClass}"></div>`,
+                        iconSize: [14, 14],
+                        iconAnchor: [7, 7]
+                    });
+
+                    const marker = L.marker([sig.lat, sig.lng], { icon })
+                        .bindPopup(buildSignalPopup(sig), { className: '' });
+
+                    sig._marker = marker;
+                    keralaSignalCluster.addLayer(marker);
+                });
+
+                map.addLayer(keralaSignalCluster);
+                keralaSignalsLoaded = true;
+
+                document.getElementById('hud-signal-count').textContent = keralaSignalData.length;
+                updateBadge('badge-kerala', keralaSignalData.length, 'live');
+                updateToggleRowVisual('toggle-kerala-signals', 'layer-row-kerala');
+
+                const mode = getCurrentMode();
+                const mConf = MODE_CONFIG[mode];
+                loaderArea.innerHTML = `
+                    <div class="signal-loader" style="color:var(--success);"><i class="fas fa-check-circle" style="animation:none;"></i> ${keralaSignalData.length} signals loaded</div>
+                    <div style="font-size:0.62rem; color:var(--text-secondary); padding:4px 0 0;">
+                        <i class="fas ${mConf.icon}" style="color:var(--purple);"></i>
+                        Mode: <strong>${mConf.label}</strong><br>
+                        <span style="opacity:0.7;">Major: ${majorCount} · Standard: ${stdCount} · Minor: ${minorCount}</span>
+                    </div>
+                `;
+                addFeedItem('signal', `Loaded ${keralaSignalData.length} signals. AI Mode: ${mConf.label}. [${majorCount} Major | ${stdCount} Standard | ${minorCount} Minor]`);
+
+                map.flyTo([10.5, 76.3], 8, { animate: true, duration: 2 });
+                startSignalTicker();
+
+            } catch (err) {
+                console.error('Overpass API error:', err);
+                loaderArea.innerHTML = '<div class="signal-loader" style="color:var(--danger);"><i class="fas fa-times-circle" style="animation:none;"></i> Failed to load signals. Try again.</div>';
+                addFeedItem('incident', 'Error loading Kerala traffic signals from OSM.');
+            }
+        }
+
+        // Tick loop — updates every second
+        function startSignalTicker() {
+            if (signalTickInterval) return;
+            signalTickInterval = setInterval(() => {
+                if (!keralaSignalCluster || !map.hasLayer(keralaSignalCluster)) return;
+
+                keralaSignalData.forEach(sig => {
+                    if (!sig._marker) return;
+
+                    const s = getSignalState(sig);
+                    let sigClass;
+                    if (s.state === 'BLINK_YELLOW') sigClass = 'sig-blink';
+                    else sigClass = s.state === 'GREEN' ? 'sig-green' :
+                        s.state === 'YELLOW' ? 'sig-yellow' : 'sig-red';
+
+                    const el = sig._marker._icon;
+                    if (el) {
+                        const pin = el.querySelector('.signal-pin');
+                        if (pin) pin.className = `signal-pin ${sigClass}`;
+                    }
+
+                    if (sig._marker.isPopupOpen()) {
+                        sig._marker.setPopupContent(buildSignalPopup(sig));
+                    }
+                });
+            }, 1000);
+        }
+
+        // Toggle handler
+        document.getElementById('toggle-kerala-signals').addEventListener('change', (e) => {
+            const on = e.target.checked;
+            if (on) {
+                loadKeralaSignals();
+            } else {
+                if (keralaSignalCluster && map.hasLayer(keralaSignalCluster)) {
+                    map.removeLayer(keralaSignalCluster);
+                }
+            }
+            updateToggleRowVisual('toggle-kerala-signals', 'layer-row-kerala');
+            saveLayerStates();
+            showLayerToast('Kerala Signals', on, 'fa-traffic-light');
+            addFeedItem('signal', `Kerala traffic signals ${on ? 'enabled' : 'hidden'}.`);
         });
     </script>
 </body>

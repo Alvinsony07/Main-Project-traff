@@ -3,7 +3,7 @@ from database.db import db
 from database.models import VehicleLog, LaneStats, AmbulanceEvent, AccidentReport
 
 with app.app_context():
-    print("Clearing all existing data (fake entries)...")
+    print("Clearing all existing data...")
     db.session.query(VehicleLog).delete()
     db.session.query(LaneStats).delete()
     db.session.query(AmbulanceEvent).delete()

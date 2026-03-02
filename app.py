@@ -5,9 +5,39 @@ from database.models import User, LaneStats, VehicleLog, DispatchLog, AccidentRe
 from models.signal_controller import SignalController
 from utils.video_processor import VideoProcessor
 from blueprints.user import user_bp
+from werkzeug.utils import secure_filename
+from functools import wraps
 import threading
 import time
 import os
+
+# --- Auth Decorator ---
+def login_required(f):
+    """Decorator to protect routes that require authentication."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.headers.get('Accept') == 'application/json' or request.is_json:
+                return jsonify({'error': 'Authentication required'}), 401
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def admin_required(f):
+    """Decorator to protect routes that require admin privileges."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            if request.headers.get('Accept') == 'application/json' or request.is_json:
+                return jsonify({'error': 'Authentication required'}), 401
+            return redirect(url_for('login'))
+        user = User.query.get(session['user_id'])
+        if not user or user.role != 'admin':
+            if request.headers.get('Accept') == 'application/json' or request.is_json:
+                return jsonify({'error': 'Admin access required'}), 403
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -85,61 +115,50 @@ def logout():
     return redirect(url_for('login'))
 
 @app.route('/dashboard')
+@admin_required
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    # Check if admin
-    user = User.query.get(session['user_id'])
-    
-    if not user:
-        session.pop('user_id', None)
-        return redirect(url_for('login'))
-
-    if user.role != 'admin':
-        return redirect(url_for('user.dashboard'))
-        
     return render_template('dashboard.html')
 
 @app.route('/analysis')
+@login_required
 def analysis():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('analysis.html')
 
 @app.route('/city_overview')
+@login_required
 def city_overview():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('city_overview.html')
 
 @app.route('/settings')
+@admin_required
 def settings():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('settings.html')
 
 @app.route('/reports')
+@login_required
 def reports():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('reports.html')
 
 @app.route('/camera_config')
+@admin_required
 def camera_config():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
     return render_template('camera_config.html')
 
 @app.route('/video_feed/<int:lane_id>')
+@login_required
 def video_feed(lane_id):
     """Video streaming route. Put this in the src attribute of an img tag."""
+    if lane_id < 0 or lane_id > 3:
+        return "Invalid lane", 400
     return Response(gen_frames(lane_id),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @app.route('/video_snapshot/<int:lane_id>')
+@login_required
 def video_snapshot(lane_id):
     """Serve a single frame snapshot for JS polling (bypasses browser connection limits)"""
+    if lane_id < 0 or lane_id > 3:
+        return "Invalid lane", 400
     frame_bytes = video_processor.get_frame(lane_id)
     if frame_bytes:
         return Response(frame_bytes, mimetype='image/jpeg')
@@ -148,15 +167,22 @@ def video_snapshot(lane_id):
         return "Not Ready", 404
 
 def gen_frames(lane_id):
-    while True:
+    """Generator for MJPEG stream. Yields frames until processor stops."""
+    idle_count = 0
+    while video_processor.running:
         frame_bytes = video_processor.get_frame(lane_id)
         if frame_bytes:
+            idle_count = 0
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         else:
+            idle_count += 1
+            if idle_count > 300:  # 30 seconds of no frames = stop generator
+                break
             time.sleep(0.1)
 
 @app.route('/api/status')
+@login_required
 def get_status():
     """API for AJAX updates on the dashboard"""
     status = signal_controller.get_status()
@@ -167,6 +193,7 @@ def get_status():
     })
 
 @app.route('/api/city_map_data')
+@login_required
 def city_map_data():
     """Aggregated API for City Overview map — traffic + incidents + dispatches"""
     status = signal_controller.get_status()
@@ -220,6 +247,7 @@ def city_map_data():
     })
 
 @app.route('/api/stats')
+@login_required
 def get_stats():
     """API for Advanced Analysis Charts"""
     from sqlalchemy import func, extract
@@ -271,6 +299,7 @@ def get_stats():
     })
 
 @app.route('/api/export_stats')
+@admin_required
 def export_stats():
     """Export all stats to CSV"""
     import io
@@ -293,6 +322,7 @@ def export_stats():
     return output
 
 @app.route('/setup_streams', methods=['POST'])
+@admin_required
 def setup_streams():
     """Helper to start the video processing with uploaded videos"""
     # Ensure uploads folder exists
@@ -319,7 +349,17 @@ def setup_streams():
                 final_sources.append(cam_input)
         elif file_obj and file_obj.filename != '':
             # Save and use file
-            path = os.path.join(app.config['UPLOAD_FOLDER'], file_obj.filename)
+            safe_name = secure_filename(file_obj.filename)
+            if not safe_name:
+                final_sources.append(None)
+                continue
+            # Validate file extension
+            ext = safe_name.rsplit('.', 1)[-1].lower() if '.' in safe_name else ''
+            if ext not in app.config.get('ALLOWED_VIDEO_EXTENSIONS', {'mp4', 'avi', 'mov', 'mkv', 'webm'}):
+                print(f"Rejected upload: invalid extension '.{ext}'")
+                final_sources.append(None)
+                continue
+            path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
             file_obj.save(path)
             final_sources.append(path)
         else:
@@ -334,23 +374,38 @@ def setup_streams():
     return redirect(url_for('dashboard'))
 
 @app.route('/api/override', methods=['POST'])
+@admin_required
 def override_signal():
     """Manual override for traffic signal"""
     try:
         data = request.json
-        lane_id = int(data.get('lane_id', 0))
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        lane_id = int(data.get('lane_id', -1))
+        if lane_id < 0 or lane_id > 3:
+            return jsonify({'success': False, 'error': 'Invalid lane_id. Must be 0-3.'}), 400
         success = signal_controller.force_switch(lane_id)
         return jsonify({'success': success})
+    except (ValueError, TypeError) as e:
+        return jsonify({'success': False, 'error': 'Invalid lane_id format'}), 400
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch', methods=['POST'])
+@login_required
 def dispatch_ambulance():
     """Record an ambulance dispatch to the database"""
     try:
         data = request.json
+        report_id = int(data.get('report_id', 0))
+        
+        # Validate that the report exists
+        report = AccidentReport.query.get(report_id)
+        if not report:
+            return jsonify({'success': False, 'error': 'Invalid report ID'}), 400
+        
         dispatch = DispatchLog(
-            report_id=int(data.get('report_id', 0)),
+            report_id=report_id,
             hospital_name=data.get('hospital_name', 'Unknown'),
             hospital_lat=data.get('hospital_lat'),
             hospital_lng=data.get('hospital_lng'),
@@ -363,9 +418,11 @@ def dispatch_ambulance():
         db.session.commit()
         return jsonify({'success': True, 'dispatch_id': dispatch.id})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/active')
+@login_required
 def get_active_dispatches():
     """Get active dispatches for the ambulance driver portal"""
     dispatches = DispatchLog.query.filter(
@@ -389,39 +446,56 @@ def get_active_dispatches():
     })
 
 @app.route('/api/dispatch/<int:dispatch_id>/accept', methods=['POST'])
+@login_required
 def accept_dispatch(dispatch_id):
     """Ambulance driver accepts a dispatch"""
-    d = DispatchLog.query.get(dispatch_id)
-    if d:
-        d.status = 'En Route'
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False})
+    try:
+        d = DispatchLog.query.get(dispatch_id)
+        if d:
+            d.status = 'En Route'
+            db.session.commit()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Dispatch not found'}), 404
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/<int:dispatch_id>/decline', methods=['POST'])
+@login_required
 def decline_dispatch(dispatch_id):
     """Ambulance driver declines a dispatch"""
-    d = DispatchLog.query.get(dispatch_id)
-    if d:
-        d.status = 'Declined'
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'success': False})
+    try:
+        d = DispatchLog.query.get(dispatch_id)
+        if d:
+            d.status = 'Declined'
+            db.session.commit()
+            return jsonify({'success': True})
+        return jsonify({'success': False, 'error': 'Dispatch not found'}), 404
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/<int:dispatch_id>/status', methods=['POST'])
+@login_required
 def update_dispatch_status(dispatch_id):
     """Update dispatch status to any valid step"""
-    d = DispatchLog.query.get(dispatch_id)
-    if d:
-        new_status = request.json.get('status', '')
-        valid = ['Dispatched', 'En Route', 'Arrived', 'Patient Loaded', 'Complete', 'Declined']
-        if new_status in valid:
-            d.status = new_status
-            db.session.commit()
-            return jsonify({'success': True, 'status': new_status})
-    return jsonify({'success': False})
+    try:
+        d = DispatchLog.query.get(dispatch_id)
+        if d:
+            new_status = request.json.get('status', '') if request.json else ''
+            valid = ['Dispatched', 'En Route', 'Arrived', 'Patient Loaded', 'Complete', 'Declined']
+            if new_status in valid:
+                d.status = new_status
+                db.session.commit()
+                return jsonify({'success': True, 'status': new_status})
+            return jsonify({'success': False, 'error': 'Invalid status value'}), 400
+        return jsonify({'success': False, 'error': 'Dispatch not found'}), 404
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/ambulance')
+@login_required
 def ambulance_portal():
     """Ambulance Driver Portal - receives live dispatch alerts"""
     return render_template('ambulance.html')
@@ -456,6 +530,20 @@ def unlock_user():
             print(f"User '{username}' has been unlocked.")
         else:
             print(f"User '{username}' not found.")
+
+# --- Error Handlers ---
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.headers.get('Accept') == 'application/json' or request.is_json:
+        return jsonify({'error': 'Not found'}), 404
+    return render_template('index.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    db.session.rollback()
+    if request.headers.get('Accept') == 'application/json' or request.is_json:
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('index.html'), 500
 
 if __name__ == '__main__':
     # Start the app

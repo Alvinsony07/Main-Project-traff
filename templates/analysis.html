@@ -1606,15 +1606,12 @@
                     }
                     lastAmbulance = ambulance;
 
-                    // Random log for demo feedback
-                    if (Math.random() < 0.15) {
-                        const msgs = [
-                            `Signal switch → ${Object.values(states).join(', ')}`,
-                            `Lane 1 density: ${lanes['0']?.density || 'LOW'}`,
-                            `Lane 2 load: ${lanes['1']?.count || 0} vehicles`,
-                            `System heartbeat OK`,
-                        ];
-                        addLog(msgs[Math.floor(Math.random() * msgs.length)], 'blue');
+                    // Real data-driven event logs
+                    const signalStr = Object.values(states).join(', ');
+                    const prevSig = window._lastSignalStr || '';
+                    if (signalStr !== prevSig) {
+                        addLog(`Signal switch → ${signalStr}`, 'blue');
+                        window._lastSignalStr = signalStr;
                     }
                 })
                 .catch(() => {

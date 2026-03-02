@@ -1,9 +1,28 @@
 import os
 import secrets
 
+def _get_or_create_secret_key():
+    """Generate a secret key and persist it so sessions survive restarts."""
+    base_dir = os.path.abspath(os.path.dirname(__file__))
+    key_file = os.path.join(base_dir, '.secret_key')
+    
+    # Allow override from environment
+    env_key = os.environ.get('SECRET_KEY')
+    if env_key:
+        return env_key
+    
+    # Read from file if exists, otherwise generate and save
+    if os.path.exists(key_file):
+        with open(key_file, 'r') as f:
+            return f.read().strip()
+    else:
+        key = secrets.token_hex(32)
+        with open(key_file, 'w') as f:
+            f.write(key)
+        return key
+
 class Config:
-    # Cryptographically secure secret key — auto-generated per install
-    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+    SECRET_KEY = _get_or_create_secret_key()
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(BASE_DIR, 'traffic.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -13,8 +32,10 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'    # Prevent CSRF via cross-site requests
     PERMANENT_SESSION_LIFETIME = 1800  # 30 minutes session timeout
     
-    # Upload folder for video files
+    # Upload security
     UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+    MAX_CONTENT_LENGTH = 50 * 1024 * 1024  # 50 MB max upload size
+    ALLOWED_VIDEO_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'webm'}
     
     # Model Paths
     MODEL_VEHICLE_PATH = os.path.join(BASE_DIR, 'weights', 'yolov8_vehicle.pt')

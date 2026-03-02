@@ -27,6 +27,7 @@ class VideoProcessor:
         
         self.running = False
         self.thread = None
+        self.last_db_log = 0  # Timestamp of last DB write
 
     def start_streams(self, video_paths):
         """
@@ -73,7 +74,12 @@ class VideoProcessor:
                     if self.caps[i] and self.caps[i].isOpened():
                         ret, raw_frame = self.caps[i].read()
                         if not ret:
-                            self.caps[i].set(cv2.CAP_PROP_POS_FRAMES, 0)
+                            # Stream ended or camera disconnected — stop this lane
+                            # (For live cameras/RTSP streams this means connection lost)
+                            # (For video files this means the file finished playing)
+                            print(f"Lane {i}: Stream ended or disconnected.")
+                            self.caps[i].release()
+                            self.caps[i] = None
                             continue
                             
                         # Downscale
@@ -116,13 +122,8 @@ class VideoProcessor:
                             
                             # DB logging: periodically
                             current_time = time.time()
-                            if getattr(self, 'last_db_log', 0) + 5 < current_time:
+                            if self.last_db_log + 5 < current_time:
                                 try:
-                                    # Simple check to avoid spamming too many DB commits if we are running 4 lanes
-                                    # Just allow Lane 0 to trigger the commit for everyone, or check per lane
-                                    # But we only updated Lane 'i' stats here. 
-                                    # Let's just log when Lane 0 processes, or use a separate timer.
-                                    # For simplicity, log THIS lane's stats now.
                                     with self.app.app_context():
                                         stats = LaneStats(lane_id=i+1, vehicle_count=total, density=density_label)
                                         db.session.add(stats)
@@ -134,10 +135,9 @@ class VideoProcessor:
                                                 db.session.add(v_log)
                                                 
                                         db.session.commit()
-                                        
-                                        if i == 3: # Update global timer
-                                            self.last_db_log = current_time
+                                        self.last_db_log = current_time
                                 except Exception as e:
+                                    db.session.rollback()
                                     print(f"DB Log Error: {e}")
 
                         # -- DRAWING (Every Frame) --
@@ -199,7 +199,8 @@ class VideoProcessor:
     def stop(self):
         self.running = False
         if self.thread:
-            self.thread.join()
+            self.thread.join(timeout=5)  # Prevent deadlock
         for cap in self.caps:
             if cap:
                 cap.release()
+        self.caps = [None] * 4

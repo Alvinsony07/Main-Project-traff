@@ -867,3 +867,120 @@ body::after {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* === TABLET BREAKPOINT === */
+@media (max-width: 900px) {
+    .app-container {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .sidebar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        height: auto;
+        border-radius: 16px 16px 0 0;
+        padding: 0.5rem 1rem;
+        z-index: 100;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 0.25rem;
+    }
+
+    .logo-area,
+    .sidebar-scan-bar,
+    .sidebar-footer,
+    .nav-divider,
+    .control-group {
+        display: none;
+    }
+
+    .nav-menu {
+        flex-direction: row;
+        gap: 0.25rem;
+        width: 100%;
+        justify-content: space-around;
+    }
+
+    .nav-item {
+        flex-direction: column;
+        gap: 0.25rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.65rem;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .nav-item i {
+        font-size: 1rem;
+    }
+
+    .info-sidebar {
+        display: none;
+    }
+
+    .main-content {
+        padding-bottom: 70px;
+    }
+
+    .video-grid {
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: auto auto;
+    }
+
+    .top-bar {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .status-group {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+}
+
+/* === MOBILE BREAKPOINT === */
+@media (max-width: 600px) {
+    .video-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .summary-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .status-group {
+        gap: 0.5rem;
+    }
+
+    .status-divider {
+        display: none;
+    }
+
+    .top-bar {
+        padding: 0.75rem;
+    }
+
+    .lane-stats .stat-row {
+        gap: 0.5rem;
+    }
+
+    .modal {
+        width: 95%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .map-section {
+        height: 350px !important;
+    }
+}

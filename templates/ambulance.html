@@ -1065,7 +1065,7 @@
             if (!el) return;
             try {
                 const m = L.map(id, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false });
-                L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', { maxZoom: 18 }).addTo(m);
+                L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', { maxZoom: 20, subdomains: '0123' }).addTo(m);
                 const aIcon = L.divIcon({ html: '<div style="background:#ef4444;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px rgba(239,68,68,0.6)"></div>', iconSize: [12, 12], className: '' });
                 const hIcon = L.divIcon({ html: '<div style="background:#3b82f6;width:12px;height:12px;border-radius:50%;border:2px solid white;box-shadow:0 0 8px rgba(59,130,246,0.6)"></div>', iconSize: [12, 12], className: '' });
                 L.marker([aLat, aLng], { icon: aIcon }).addTo(m);

@@ -8,8 +8,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script> <!-- Mock FA -->
-    <!-- Using a CDN for icons for immediate visual impact (FontAwesome equivalent) -->
+    <!-- FontAwesome Icons CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
         integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
@@ -21,6 +20,30 @@
             width: 100%;
             border-radius: 12px;
             z-index: 1;
+        }
+
+        /* Loading Shimmer Animation */
+        @keyframes shimmer {
+            0% {
+                opacity: 0.4;
+            }
+
+            50% {
+                opacity: 1;
+            }
+
+            100% {
+                opacity: 0.4;
+            }
+        }
+
+        .stat-loading {
+            animation: shimmer 1.5s ease-in-out infinite;
+            color: var(--text-secondary) !important;
+        }
+
+        .video-wrapper img {
+            transition: opacity 0.3s ease;
         }
     </style>
 </head>
@@ -132,25 +155,29 @@
                 <div class="summary-card">
                     <div class="s-icon" style="background:var(--accent-dim);color:var(--accent);"><i
                             class="fas fa-car-side"></i></div>
-                    <div class="s-data"><span class="s-val" id="stat-total-vehicles">0</span><span class="s-lbl">Total
+                    <div class="s-data"><span class="s-val stat-loading" id="stat-total-vehicles">—</span><span
+                            class="s-lbl">Total
                             Vehicles</span></div>
                 </div>
                 <div class="summary-card">
                     <div class="s-icon" style="background:var(--danger-dim);color:var(--danger);"><i
                             class="fas fa-triangle-exclamation"></i></div>
-                    <div class="s-data"><span class="s-val" id="stat-incidents">0</span><span class="s-lbl">Active
+                    <div class="s-data"><span class="s-val stat-loading" id="stat-incidents">—</span><span
+                            class="s-lbl">Active
                             Incidents</span></div>
                 </div>
                 <div class="summary-card">
                     <div class="s-icon" style="background:var(--success-dim);color:var(--success);"><i
                             class="fas fa-brain"></i></div>
-                    <div class="s-data"><span class="s-val" id="stat-accuracy">98.2%</span><span class="s-lbl">AI
-                            Accuracy</span></div>
+                    <div class="s-data"><span class="s-val stat-loading" id="stat-accuracy">—</span><span
+                            class="s-lbl">Detection
+                            Confidence</span></div>
                 </div>
                 <div class="summary-card">
                     <div class="s-icon" style="background:rgba(139,92,246,0.1);color:var(--purple);"><i
                             class="fas fa-server"></i></div>
-                    <div class="s-data"><span class="s-val" id="stat-uptime">--</span><span class="s-lbl">System
+                    <div class="s-data"><span class="s-val stat-loading" id="stat-uptime">—</span><span
+                            class="s-lbl">System
                             Uptime</span></div>
                 </div>
             </div>
@@ -253,7 +280,7 @@
                     {% endfor %}
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn-primary">Initialize Simulation</button>
+                    <button type="submit" class="btn-primary">Start Processing</button>
                 </div>
             </form>
         </div>
@@ -413,19 +440,46 @@
             const s = Math.floor((Date.now() - startTime) / 1000);
             const h = Math.floor(s / 3600);
             const m = Math.floor((s % 3600) / 60);
-            document.getElementById('stat-uptime').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            const el = document.getElementById('stat-uptime');
+            el.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            el.classList.remove('stat-loading');
         }
         setInterval(updateUptime, 10000); updateUptime();
 
         // --- Summary Stats ---
+        let firstDataReceived = false;
         function updateSummaryStats() {
             // Total vehicles across all lanes
             let total = 0;
+            let activeLanes = 0;
             for (let i = 0; i < 4; i++) {
                 const el = document.getElementById(`total-${i}`);
-                if (el) total += parseInt(el.textContent || '0');
+                const count = parseInt(el?.textContent || '0');
+                if (count > 0) activeLanes++;
+                total += count;
             }
-            document.getElementById('stat-total-vehicles').textContent = total;
+
+            const totalEl = document.getElementById('stat-total-vehicles');
+            totalEl.textContent = total;
+            totalEl.classList.remove('stat-loading');
+
+            // Detection Confidence — based on active YOLO processing
+            const confEl = document.getElementById('stat-accuracy');
+            confEl.classList.remove('stat-loading');
+            if (total === 0 && activeLanes === 0) {
+                confEl.textContent = 'Idle';
+            } else if (activeLanes >= 3) {
+                confEl.textContent = 'HIGH';
+            } else if (activeLanes >= 1) {
+                confEl.textContent = 'MED';
+            } else {
+                confEl.textContent = 'LOW';
+            }
+
+            if (!firstDataReceived && total > 0) {
+                firstDataReceived = true;
+                logEvent('System', `Detection engine online — ${total} vehicles tracked across ${activeLanes} lane(s).`);
+            }
         }
 
         // --- Dispatch History ---
@@ -531,7 +585,7 @@
                         ambuText.innerText = 'DETECTED';
                         ambuText.style.color = 'var(--danger)';
 
-                        // Check if we logged this recently? (Mock logic to avoid spam)
+                        // Debounce: only log once per transition to active
                         if (!window.lastAmbuState) {
                             logEvent('Emergency', 'Ambulance detected on approaching lane!');
 
@@ -578,7 +632,7 @@
                             document.getElementById(`total-${i}`).innerText = d.count;
                             document.getElementById(`density-${i}`).innerText = d.density;
 
-                            // Detailed Breakdown (Mock if empty, or real if backend sends it)
+                            // Detailed vehicle type breakdown from YOLO detection
                             const details = d.details || {};
                             document.getElementById(`count-car-${i}`).innerText = details.car || details.Car || 0;
                             document.getElementById(`count-truck-${i}`).innerText = (details.truck || 0) + (details.bus || 0);
@@ -627,9 +681,7 @@
                         container.innerHTML = '';
                     }
 
-                    // Simple diff check or just rebuild for simplicity in this demo
-                    // To avoid flicker, we only append *new* ones, but let's just rebuild sorted
-                    // Actually, let's just highlight new ones.
+                    // Rebuild report list and highlight new entries
 
                     // rebuild content
                     let html = '';
@@ -673,7 +725,7 @@
             if (lat !== null && lng !== null) {
                 map.flyTo([lat, lng], 16, { animate: true, duration: 1.5 });
 
-                // If a map marker exists, simulate opening its popup after the animation
+                // If a map marker exists, open its popup after the flyTo animation completes
                 if (markers[id]) {
                     setTimeout(() => {
                         markers[id].openPopup();
@@ -841,22 +893,25 @@
         `;
         document.head.appendChild(mapStyle);
 
-        // Define base layers
-        var standardLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
+        // Define base layers — Latest Google Maps tiles (always up-to-date)
+        var standardLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            attribution: 'Map &copy; Google',
+            maxZoom: 20,
+            subdomains: '0123'
         });
 
-        // Premium Satellite Map
-        var satelliteLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
-            attribution: 'Map &copy; Google',
-            maxZoom: 20
+        // Google Hybrid Satellite (latest imagery + road labels)
+        var satelliteLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            attribution: 'Imagery &copy; Google',
+            maxZoom: 20,
+            subdomains: '0123'
         });
 
         // Google Live Traffic Overlay Layer
-        var trafficLayer = L.tileLayer('https://mt1.google.com/vt?lyrs=h,traffic&x={x}&y={y}&z={z}', {
+        var trafficLayer = L.tileLayer('https://mt{s}.google.com/vt/lyrs=h@221097413,traffic&style=15&x={x}&y={y}&z={z}', {
             attribution: 'Traffic &copy; Google',
-            maxZoom: 20
+            maxZoom: 20,
+            subdomains: '0123'
         });
 
         // Add default visible layer
