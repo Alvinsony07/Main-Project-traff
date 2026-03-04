@@ -135,44 +135,8 @@
 
 <body>
     <div class="app-container">
-        <!-- Side Navigation -->
-        <aside class="sidebar glass-panel">
-            <div class="logo-area">
-                <div
-                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
-                    <i class="fas fa-camera-retro"></i>
-                </div>
-                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
-                    AI</h2>
-            </div>
-
-            <nav class="nav-menu">
-                <a href="{{ url_for('dashboard') }}" class="nav-item">
-                    <i class="fas fa-th-large"></i> Command Center
-                </a>
-                <a href="{{ url_for('city_overview') }}" class="nav-item">
-                    <i class="fas fa-map-marked-alt"></i> City Overview
-                </a>
-                <a href="{{ url_for('analysis') }}" class="nav-item">
-                    <i class="fas fa-chart-line"></i> Analytics
-                </a>
-                <a href="{{ url_for('reports') }}" class="nav-item">
-                    <i class="fas fa-file-pdf"></i> Reports
-                </a>
-                <a href="{{ url_for('camera_config') }}" class="nav-item active">
-                    <i class="fas fa-video"></i> Camera Config
-                </a>
-                <a href="{{ url_for('settings') }}" class="nav-item">
-                    <i class="fas fa-cogs"></i> Settings
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="nav-item logout">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </aside>
+        {% set active_page = 'camera_config' %}
+        {% include 'partials/sidebar.html' %}
 
         <!-- Main Content -->
         <main class="main-content">

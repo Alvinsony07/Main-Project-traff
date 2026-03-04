@@ -58,6 +58,7 @@
             color: var(--text-primary);
             border-radius: 6px;
             font-family: inherit;
+            box-sizing: border-box;
         }
 
         .form-control:focus {
@@ -82,49 +83,169 @@
         .switch-container:last-child {
             border-bottom: none;
         }
+
+        /* Custom toggle switch */
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            transition: 0.3s;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: rgba(59, 130, 246, 0.3);
+        }
+
+        .toggle-switch input:checked+.toggle-slider::before {
+            transform: translateX(20px);
+            background: var(--accent);
+            box-shadow: 0 0 8px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Save notification */
+        .save-toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: var(--success);
+            padding: 14px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .save-toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .save-toast.error {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        /* Audit Trail */
+        .audit-panel {
+            margin-top: 20px;
+            padding: 25px;
+            border-radius: 12px;
+        }
+
+        .audit-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .audit-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .audit-table th,
+        .audit-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .audit-table th {
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+
+        .audit-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .audit-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .audit-badge.override {
+            background: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+        }
+
+        .audit-badge.dispatch {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .audit-badge.settings {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .audit-badge.login {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+
+        .audit-empty {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 
 <body>
     <div class="app-container">
-        <!-- Side Navigation -->
-        <aside class="sidebar glass-panel">
-            <div class="logo-area">
-                <div
-                    style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:white;flex-shrink:0;">
-                    <i class="fas fa-camera-retro"></i>
-                </div>
-                <h2 style="font-size:1.05rem;font-weight:800;letter-spacing:-0.3px;line-height:1.15;">Traffic<br>Vision
-                    AI</h2>
-            </div>
-
-            <nav class="nav-menu">
-                <a href="{{ url_for('dashboard') }}" class="nav-item">
-                    <i class="fas fa-th-large"></i> Command Center
-                </a>
-                <a href="{{ url_for('city_overview') }}" class="nav-item">
-                    <i class="fas fa-map-marked-alt"></i> City Overview
-                </a>
-                <a href="{{ url_for('analysis') }}" class="nav-item">
-                    <i class="fas fa-chart-line"></i> Analytics
-                </a>
-                <a href="{{ url_for('reports') }}" class="nav-item">
-                    <i class="fas fa-file-pdf"></i> Reports
-                </a>
-                <a href="{{ url_for('camera_config') }}" class="nav-item">
-                    <i class="fas fa-video"></i> Camera Config
-                </a>
-                <a href="{{ url_for('settings') }}" class="nav-item active">
-                    <i class="fas fa-cogs"></i> Settings
-                </a>
-            </nav>
-
-            <div class="sidebar-footer">
-                <a href="{{ url_for('logout') }}" class="nav-item logout">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </a>
-            </div>
-        </aside>
+        {% set active_page = 'settings' %}
+        {% include 'partials/sidebar.html' %}
 
         <!-- Main Content -->
         <main class="main-content">
@@ -132,8 +253,9 @@
                 <h2 style="margin:0;font-size:1.4rem;"><i class="fas fa-sliders-h" style="color:var(--accent);"></i>
                     Global System Settings</h2>
                 <div class="header-actions">
-                    <button class="btn-primary" onclick="alert('Settings Saved Successfully');"><i
-                            class="fas fa-save"></i> Save Changes</button>
+                    <button class="btn-primary" id="save-btn" onclick="saveSettings()">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
                 </div>
             </header>
 
@@ -145,19 +267,19 @@
 
                     <div class="form-group">
                         <label class="form-label">YOLO Model Version</label>
-                        <select class="form-control">
-                            <option>YOLOv8 Nano (Fastest)</option>
-                            <option selected>YOLOv8 Small (Balanced)</option>
-                            <option>YOLOv8 Medium (High Accuracy)</option>
-                            <option>YOLOv8 Large (Max Precision)</option>
+                        <select class="form-control" id="yolo_model">
+                            <option value="yolov8n">YOLOv8 Nano (Fastest)</option>
+                            <option value="yolov8s">YOLOv8 Small (Balanced)</option>
+                            <option value="yolov8m">YOLOv8 Medium (High Accuracy)</option>
+                            <option value="yolov8l">YOLOv8 Large (Max Precision)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Detection Confidence Threshold</label>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="range" class="range-slider" min="10" max="100" value="45"
-                                oninput="this.nextElementSibling.innerText = this.value + '%'">
+                            <input type="range" class="range-slider" id="confidence_threshold" min="10" max="100"
+                                value="45" oninput="this.nextElementSibling.innerText = this.value + '%'">
                             <span style="min-width:40px; text-align:right;">45%</span>
                         </div>
                     </div>
@@ -165,8 +287,8 @@
                     <div class="form-group">
                         <label class="form-label">Ambulance Emergency Priority Confidence</label>
                         <div style="display:flex; align-items:center; gap:10px;">
-                            <input type="range" class="range-slider" min="10" max="100" value="65"
-                                oninput="this.nextElementSibling.innerText = this.value + '%'">
+                            <input type="range" class="range-slider" id="ambulance_confidence" min="10" max="100"
+                                value="65" oninput="this.nextElementSibling.innerText = this.value + '%'">
                             <span style="min-width:40px; text-align:right;">65%</span>
                         </div>
                     </div>
@@ -179,17 +301,18 @@
 
                     <div class="form-group">
                         <label class="form-label">Low Density Green Time (seconds)</label>
-                        <input type="number" class="form-control" value="15">
+                        <input type="number" class="form-control" id="low_density_green" value="15" min="5" max="120">
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Medium Density Green Time (seconds)</label>
-                        <input type="number" class="form-control" value="30">
+                        <input type="number" class="form-control" id="medium_density_green" value="30" min="5"
+                            max="120">
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">High Density Green Time (seconds)</label>
-                        <input type="number" class="form-control" value="45">
+                        <input type="number" class="form-control" id="high_density_green" value="45" min="5" max="120">
                     </div>
                 </div>
 
@@ -204,9 +327,9 @@
                             <div style="font-size:0.8rem; color:var(--text-secondary);">Force dark theme across all
                                 system pages</div>
                         </div>
-                        <label class="switch-label">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dark_mode" checked>
+                            <span class="toggle-slider"></span>
                         </label>
                     </div>
 
@@ -216,9 +339,9 @@
                             <div style="font-size:0.8rem; color:var(--text-secondary);">Synthesized voice alerts for
                                 emergencies</div>
                         </div>
-                        <label class="switch-label">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="voice_alerts" checked>
+                            <span class="toggle-slider"></span>
                         </label>
                     </div>
 
@@ -228,9 +351,9 @@
                             <div style="font-size:0.8rem; color:var(--text-secondary);">Forward accident logs to
                                 ambulances automatically</div>
                         </div>
-                        <label class="switch-label">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="auto_dispatch" checked>
+                            <span class="toggle-slider"></span>
                         </label>
                     </div>
                 </div>
@@ -241,28 +364,198 @@
                         Integrations</h3>
 
                     <div class="form-group">
-                        <label class="form-label">Map Data Provider API Key (Leaflet Base)</label>
-                        <input type="password" class="form-control" value="xxxxxxxxxxxxxxxxxxxxxxx">
-                    </div>
-
-                    <div class="form-group">
                         <label class="form-label">Data Retention Policy</label>
-                        <select class="form-control">
-                            <option>Keep 7 days</option>
-                            <option selected>Keep 30 days</option>
-                            <option>Keep 90 days</option>
-                            <option>Never Delete</option>
+                        <select class="form-control" id="data_retention">
+                            <option value="7_days">Keep 7 days</option>
+                            <option value="30_days">Keep 30 days</option>
+                            <option value="90_days">Keep 90 days</option>
+                            <option value="forever">Never Delete</option>
                         </select>
                     </div>
 
-                    <button class="btn-primary"
-                        style="margin-top:10px; width:100%; background:var(--danger); border:none;"><i
-                            class="fas fa-trash"></i> Purge Historical Data</button>
-                </div>
+                    <div class="form-group">
+                        <label class="form-label">Database Status</label>
+                        <div
+                            style="display:flex; align-items:center; gap:8px; padding:10px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.2); border-radius:8px;">
+                            <i class="fas fa-check-circle" style="color:var(--success);"></i>
+                            <span style="font-size:0.85rem; color:var(--success); font-weight:600;">SQLite Active —
+                                traffic.db</span>
+                        </div>
+                    </div>
 
+                    <button class="btn-primary"
+                        style="margin-top:10px; width:100%; background:var(--danger); border:none;"
+                        onclick="confirmPurge()"><i class="fas fa-trash"></i> Purge Historical Data</button>
+                </div>
+            </div>
+
+            <!-- Audit Trail Panel -->
+            <div class="glass-panel audit-panel">
+                <h3 class="audit-title"><i class="fas fa-shield-alt" style="color:var(--warning);"></i> Admin Audit
+                    Trail</h3>
+                <div style="overflow-x:auto;">
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Admin</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                                <th>IP Address</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-body">
+                            <tr>
+                                <td colspan="5" class="audit-empty"><i class="fas fa-spinner fa-spin"></i> Loading...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="save-toast" id="save-toast">
+        <i class="fas fa-check-circle"></i> <span id="toast-msg">Settings saved successfully</span>
+    </div>
+
+    <script>
+        // Toast notification helper
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('save-toast');
+            const msgEl = document.getElementById('toast-msg');
+            msgEl.textContent = message;
+            toast.className = isError ? 'save-toast error show' : 'save-toast show';
+            toast.querySelector('i').className = isError ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+            setTimeout(() => { toast.className = 'save-toast'; }, 3000);
+        }
+
+        // Load settings from API on page load
+        function loadSettings() {
+            fetch('/api/settings')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('yolo_model').value = data.yolo_model || 'yolov8s';
+
+                    const confEl = document.getElementById('confidence_threshold');
+                    confEl.value = data.confidence_threshold || 45;
+                    confEl.nextElementSibling.textContent = confEl.value + '%';
+
+                    const ambEl = document.getElementById('ambulance_confidence');
+                    ambEl.value = data.ambulance_confidence || 65;
+                    ambEl.nextElementSibling.textContent = ambEl.value + '%';
+
+                    document.getElementById('low_density_green').value = data.low_density_green || 15;
+                    document.getElementById('medium_density_green').value = data.medium_density_green || 30;
+                    document.getElementById('high_density_green').value = data.high_density_green || 45;
+                    document.getElementById('dark_mode').checked = data.dark_mode !== false;
+                    document.getElementById('voice_alerts').checked = data.voice_alerts !== false;
+                    document.getElementById('auto_dispatch').checked = data.auto_dispatch !== false;
+                    document.getElementById('data_retention').value = data.data_retention || '30_days';
+                })
+                .catch(() => { });
+        }
+
+        // Save all settings to API
+        function saveSettings() {
+            const btn = document.getElementById('save-btn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.style.pointerEvents = 'none';
+
+            const payload = {
+                yolo_model: document.getElementById('yolo_model').value,
+                confidence_threshold: parseInt(document.getElementById('confidence_threshold').value),
+                ambulance_confidence: parseInt(document.getElementById('ambulance_confidence').value),
+                low_density_green: parseInt(document.getElementById('low_density_green').value),
+                medium_density_green: parseInt(document.getElementById('medium_density_green').value),
+                high_density_green: parseInt(document.getElementById('high_density_green').value),
+                dark_mode: document.getElementById('dark_mode').checked,
+                voice_alerts: document.getElementById('voice_alerts').checked,
+                auto_dispatch: document.getElementById('auto_dispatch').checked,
+                data_retention: document.getElementById('data_retention').value
+            };
+
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Settings saved successfully');
+                    } else {
+                        showToast('Failed to save: ' + (data.error || 'Unknown error'), true);
+                    }
+                })
+                .catch(err => {
+                    showToast('Network error — settings not saved', true);
+                })
+                .finally(() => {
+                    btn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+                    btn.style.pointerEvents = 'auto';
+                });
+        }
+
+        function confirmPurge() {
+            if (confirm('⚠️ WARNING: This will permanently delete ALL historical traffic data.\n\nAre you absolutely sure?')) {
+                if (confirm('FINAL CONFIRMATION: Press OK to permanently delete all data. This cannot be undone.')) {
+                    fetch('/api/purge_data', { method: 'POST' })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) {
+                                showToast(`Purged ${data.purged.lane_stats} records + ${data.purged.vehicle_logs} logs`);
+                                loadAuditTrail(); // Refresh to show purge action
+                            } else {
+                                showToast('Purge failed: ' + (data.error || 'Unknown'), true);
+                            }
+                        })
+                        .catch(() => showToast('Network error during purge', true));
+                }
+            }
+        }
+
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            loadAuditTrail();
+        });
+
+        // Audit Trail loader
+        function loadAuditTrail() {
+            fetch('/api/audit_trail?per_page=20')
+                .then(r => r.json())
+                .then(data => {
+                    const tbody = document.getElementById('audit-body');
+                    if (!data.entries || data.entries.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="5" class="audit-empty"><i class="fas fa-check-circle"></i> No audit events recorded yet.</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = '';
+                    data.entries.forEach(entry => {
+                        const tr = document.createElement('tr');
+
+                        const badgeClass = entry.action.includes('override') ? 'override' :
+                            (entry.action.includes('dispatch') ? 'dispatch' :
+                                (entry.action.includes('settings') ? 'settings' : 'login'));
+
+                        tr.innerHTML = `
+                            <td style="color:var(--text-secondary);font-size:0.8rem;"><i class="far fa-clock"></i> ${entry.timestamp}</td>
+                            <td><strong>${entry.user}</strong></td>
+                            <td><span class="audit-badge ${badgeClass}">${entry.action.replace('_', ' ')}</span></td>
+                            <td style="color:var(--text-secondary);max-width:250px;overflow:hidden;text-overflow:ellipsis;">${entry.details || '—'}</td>
+                            <td style="font-family:monospace;font-size:0.75rem;color:var(--text-secondary);">${entry.ip || '—'}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                })
+                .catch(() => {
+                    document.getElementById('audit-body').innerHTML = '<tr><td colspan="5" class="audit-empty" style="color:var(--danger);"><i class="fas fa-exclamation-triangle"></i> Failed to load audit trail.</td></tr>';
+                });
+        }
+    </script>
 </body>
 
 </html>

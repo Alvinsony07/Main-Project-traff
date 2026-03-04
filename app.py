@@ -1,15 +1,32 @@
 from flask import Flask, render_template, Response, jsonify, request, redirect, url_for, session, flash, make_response
 from config import Config
 from database.db import init_db, db
-from database.models import User, LaneStats, VehicleLog, DispatchLog, AccidentReport
+from database.models import User, LaneStats, VehicleLog, DispatchLog, AccidentReport, AuditLog
 from models.signal_controller import SignalController
 from utils.video_processor import VideoProcessor
 from blueprints.user import user_bp
 from werkzeug.utils import secure_filename
 from functools import wraps
+from collections import defaultdict
 import threading
 import time
+import json
 import os
+
+# --- Rate Limiter (in-memory) ---
+_login_attempts = defaultdict(list)  # IP -> list of timestamps
+LOGIN_RATE_LIMIT = 5       # Max attempts
+LOGIN_RATE_WINDOW = 300    # Per 5-minute window (seconds)
+
+def _is_rate_limited(ip):
+    """Check if an IP has exceeded login rate limit."""
+    now = time.time()
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < LOGIN_RATE_WINDOW]
+    return len(_login_attempts[ip]) >= LOGIN_RATE_LIMIT
+
+def _record_attempt(ip):
+    """Record a login attempt for rate limiting."""
+    _login_attempts[ip].append(time.time())
 
 # --- Auth Decorator ---
 def login_required(f):
@@ -77,6 +94,18 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+        client_ip = request.remote_addr
+        
+        # Rate limiting check
+        if _is_rate_limited(client_ip):
+            msg = 'Too many login attempts. Please try again in 5 minutes.'
+            if request.headers.get('Accept') == 'application/json':
+                return jsonify({'success': False, 'message': msg}), 429
+            flash(msg)
+            return render_template('login.html')
+        
+        _record_attempt(client_ip)
+        
         username = request.form.get('username')
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
@@ -93,6 +122,15 @@ def login():
             session['user_id'] = user.id
             session.permanent = True  # Enable session timeout
             db.session.commit()  # Persist reset of failed_login_attempts
+            # Clear rate limit on success
+            _login_attempts.pop(client_ip, None)
+            # Audit log
+            AuditLog.log(
+                action='login_success',
+                details=f'User {username} logged in',
+                user_id=user.id,
+                ip_address=client_ip
+            )
             redirect_url = url_for('dashboard') if user.role == 'admin' else url_for('user.dashboard')
             
             if request.headers.get('Accept') == 'application/json':
@@ -102,6 +140,13 @@ def login():
         # Persist failed login attempt counter
         if user:
             db.session.commit()
+        
+        # Audit log for failed attempts
+        AuditLog.log(
+            action='login_failed',
+            details=f'Failed login attempt for user: {username}',
+            ip_address=client_ip
+        )
             
         if request.headers.get('Accept') == 'application/json':
             return jsonify({'success': False, 'message': 'Invalid credentials'})
@@ -298,6 +343,54 @@ def get_stats():
         'ambulance_events': ambulance_events
     })
 
+@app.route('/api/reports_data')
+@login_required
+def reports_data():
+    """Paginated, filterable API for Reports page"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    lane_filter = request.args.get('lane', None, type=int)  # 0-3
+    density_filter = request.args.get('density', None, type=str)  # Low, Medium, High
+    date_filter = request.args.get('date', None, type=str)  # YYYY-MM-DD
+    
+    per_page = min(per_page, 100)  # Cap at 100
+    
+    query = LaneStats.query
+    
+    if lane_filter is not None and 1 <= lane_filter <= 4:
+        query = query.filter(LaneStats.lane_id == lane_filter)
+    if density_filter and density_filter in ('Low', 'Medium', 'High'):
+        query = query.filter(LaneStats.density == density_filter)
+    if date_filter:
+        try:
+            from datetime import datetime as dt
+            target = dt.strptime(date_filter, '%Y-%m-%d')
+            from sqlalchemy import func
+            query = query.filter(func.date(LaneStats.timestamp) == target.date())
+        except ValueError:
+            pass  # Invalid date format, skip filter
+    
+    query = query.order_by(LaneStats.timestamp.desc())
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    
+    records = [{
+        'id': s.id,
+        'lane_id': s.lane_id,
+        'vehicle_count': s.vehicle_count,
+        'density': s.density or ('High' if s.vehicle_count > 20 else ('Medium' if s.vehicle_count > 10 else 'Low')),
+        'timestamp': s.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+    } for s in pagination.items]
+    
+    return jsonify({
+        'records': records,
+        'total': pagination.total,
+        'pages': pagination.pages,
+        'current_page': page,
+        'per_page': per_page,
+        'has_next': pagination.has_next,
+        'has_prev': pagination.has_prev
+    })
+
 @app.route('/api/export_stats')
 @admin_required
 def export_stats():
@@ -320,6 +413,155 @@ def export_stats():
     output.headers["Content-Disposition"] = "attachment; filename=traffic_stats.csv"
     output.headers["Content-type"] = "text/csv"
     return output
+
+# --- Settings Persistence ---
+SETTINGS_FILE = os.path.join(Config.BASE_DIR, 'system_settings.json')
+
+def _load_settings():
+    """Load settings from JSON file, return defaults if not found."""
+    defaults = {
+        'yolo_model': 'yolov8s',
+        'confidence_threshold': 45,
+        'ambulance_confidence': 65,
+        'low_density_green': 15,
+        'medium_density_green': 30,
+        'high_density_green': 45,
+        'dark_mode': True,
+        'voice_alerts': True,
+        'auto_dispatch': True,
+        'data_retention': '30_days'
+    }
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, 'r') as f:
+                saved = json.load(f)
+            defaults.update(saved)
+        except (json.JSONDecodeError, IOError):
+            pass
+    return defaults
+
+def _save_settings(data):
+    """Save settings to JSON file."""
+    with open(SETTINGS_FILE, 'w') as f:
+        json.dump(data, f, indent=2)
+
+@app.route('/api/settings', methods=['GET'])
+@admin_required
+def get_settings():
+    """Get current system settings."""
+    return jsonify(_load_settings())
+
+@app.route('/api/settings', methods=['POST'])
+@admin_required
+def save_settings():
+    """Save system settings."""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+        
+        current = _load_settings()
+        # Whitelist valid settings keys
+        allowed_keys = {
+            'yolo_model', 'confidence_threshold', 'ambulance_confidence',
+            'low_density_green', 'medium_density_green', 'high_density_green',
+            'dark_mode', 'voice_alerts', 'auto_dispatch', 'data_retention'
+        }
+        for key in allowed_keys:
+            if key in data:
+                current[key] = data[key]
+        
+        _save_settings(current)
+        # Audit log
+        changed_keys = [k for k in allowed_keys if k in data]
+        AuditLog.log(
+            action='settings_changed',
+            details=f'Updated: {", ".join(changed_keys)}',
+            user_id=session.get('user_id'),
+            ip_address=request.remote_addr
+        )
+        return jsonify({'success': True, 'settings': current})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/generate_pdf')
+@admin_required
+def generate_pdf():
+    """Generate a PDF report of traffic statistics."""
+    import io
+    from datetime import datetime as dt
+    
+    # Gather data
+    stats = LaneStats.query.order_by(LaneStats.timestamp.desc()).limit(100).all()
+    dispatches = DispatchLog.query.order_by(DispatchLog.timestamp.desc()).limit(20).all()
+    incidents = AccidentReport.query.order_by(AccidentReport.timestamp.desc()).limit(20).all()
+    
+    total_vehicles = sum(s.vehicle_count for s in stats)
+    total_dispatches = DispatchLog.query.count()
+    total_incidents = AccidentReport.query.count()
+    
+    # Build HTML content for PDF
+    html_content = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; color: #1a1a2e; }}
+            h1 {{ color: #3b82f6; border-bottom: 3px solid #3b82f6; padding-bottom: 10px; }}
+            h2 {{ color: #1e293b; margin-top: 30px; }}
+            .meta {{ color: #64748b; font-size: 14px; margin-bottom: 30px; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 13px; }}
+            th {{ background: #3b82f6; color: white; padding: 10px; text-align: left; }}
+            td {{ padding: 8px 10px; border-bottom: 1px solid #e2e8f0; }}
+            tr:nth-child(even) {{ background: #f8fafc; }}
+            .stat-box {{ display: inline-block; background: #f1f5f9; border-radius: 10px; padding: 15px 25px; margin: 5px; text-align: center; }}
+            .stat-val {{ font-size: 28px; font-weight: bold; color: #3b82f6; }}
+            .stat-lbl {{ font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; }}
+            .footer {{ margin-top: 40px; padding-top: 15px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 12px; }}
+        </style>
+    </head>
+    <body>
+        <h1>Traffic Vision AI — Analytics Report</h1>
+        <div class="meta">Generated: {dt.now().strftime('%Y-%m-%d %H:%M:%S')} | System v3.0</div>
+        
+        <div>
+            <div class="stat-box"><div class="stat-val">{total_vehicles}</div><div class="stat-lbl">Total Vehicles</div></div>
+            <div class="stat-box"><div class="stat-val">{total_dispatches}</div><div class="stat-lbl">Dispatches</div></div>
+            <div class="stat-box"><div class="stat-val">{total_incidents}</div><div class="stat-lbl">Incidents</div></div>
+            <div class="stat-box"><div class="stat-val">{len(stats)}</div><div class="stat-lbl">Data Points</div></div>
+        </div>
+        
+        <h2>Recent Traffic Records</h2>
+        <table>
+            <tr><th>ID</th><th>Lane</th><th>Vehicles</th><th>Density</th><th>Timestamp</th></tr>
+    """
+    
+    for s in stats[:50]:
+        density = s.density or ('High' if s.vehicle_count > 20 else ('Medium' if s.vehicle_count > 10 else 'Low'))
+        html_content += f"<tr><td>#{s.id}</td><td>Lane {s.lane_id}</td><td>{s.vehicle_count}</td><td>{density}</td><td>{s.timestamp.strftime('%Y-%m-%d %H:%M')}</td></tr>\n"
+    
+    html_content += """</table>
+        <h2>Recent Incident Reports</h2>
+        <table>
+            <tr><th>ID</th><th>Location</th><th>Status</th><th>Reported</th></tr>
+    """
+    
+    for inc in incidents:
+        html_content += f"<tr><td>#{inc.id}</td><td>{inc.location}</td><td>{inc.status}</td><td>{inc.timestamp.strftime('%Y-%m-%d %H:%M')}</td></tr>\n"
+    
+    html_content += f"""
+        </table>
+        <div class="footer">
+            Traffic Vision AI — Autonomous Traffic Management System<br>
+            This report was auto-generated. Data reflects records up to {dt.now().strftime('%Y-%m-%d %H:%M')}.
+        </div>
+    </body>
+    </html>
+    """
+    
+    response = make_response(html_content)
+    response.headers['Content-Type'] = 'text/html'
+    response.headers['Content-Disposition'] = f'attachment; filename=traffic_report_{dt.now().strftime("%Y%m%d_%H%M%S")}.html'
+    return response
 
 @app.route('/setup_streams', methods=['POST'])
 @admin_required
@@ -385,6 +627,13 @@ def override_signal():
         if lane_id < 0 or lane_id > 3:
             return jsonify({'success': False, 'error': 'Invalid lane_id. Must be 0-3.'}), 400
         success = signal_controller.force_switch(lane_id)
+        # Audit log
+        AuditLog.log(
+            action='signal_override',
+            details=f'Manual override to Lane {lane_id}',
+            user_id=session.get('user_id'),
+            ip_address=request.remote_addr
+        )
         return jsonify({'success': success})
     except (ValueError, TypeError) as e:
         return jsonify({'success': False, 'error': 'Invalid lane_id format'}), 400
@@ -416,6 +665,13 @@ def dispatch_ambulance():
         )
         db.session.add(dispatch)
         db.session.commit()
+        # Audit log
+        AuditLog.log(
+            action='dispatch_created',
+            details=f'Dispatched to {data.get("hospital_name", "Unknown")} for report #{report_id}',
+            user_id=session.get('user_id'),
+            ip_address=request.remote_addr
+        )
         return jsonify({'success': True, 'dispatch_id': dispatch.id})
     except Exception as e:
         db.session.rollback()
@@ -531,19 +787,128 @@ def unlock_user():
         else:
             print(f"User '{username}' not found.")
 
+# --- Data Purge API ---
+@app.route('/api/purge_data', methods=['POST'])
+@admin_required
+def purge_data():
+    """Purge all historical traffic data (LaneStats, VehicleLog)."""
+    try:
+        lane_count = LaneStats.query.count()
+        vehicle_count = VehicleLog.query.count()
+        
+        LaneStats.query.delete()
+        VehicleLog.query.delete()
+        db.session.commit()
+        
+        AuditLog.log(
+            action='data_purge',
+            details=f'Purged {lane_count} lane stats, {vehicle_count} vehicle logs',
+            user_id=session.get('user_id'),
+            ip_address=request.remote_addr
+        )
+        
+        return jsonify({
+            'success': True,
+            'purged': {'lane_stats': lane_count, 'vehicle_logs': vehicle_count}
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 # --- Error Handlers ---
 @app.errorhandler(404)
 def not_found_error(error):
     if request.headers.get('Accept') == 'application/json' or request.is_json:
         return jsonify({'error': 'Not found'}), 404
-    return render_template('index.html'), 404
+    return render_template('404.html'), 404
 
 @app.errorhandler(500)
 def internal_error(error):
     db.session.rollback()
     if request.headers.get('Accept') == 'application/json' or request.is_json:
         return jsonify({'error': 'Internal server error'}), 500
-    return render_template('index.html'), 500
+    return render_template('404.html', error_code=500, error_msg='Internal Server Error'), 500
+
+# --- Audit Trail API ---
+@app.route('/api/audit_trail')
+@admin_required
+def audit_trail():
+    """Returns recent audit log entries."""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    per_page = min(per_page, 100)
+    
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    return jsonify({
+        'entries': [{
+            'id': l.id,
+            'action': l.action,
+            'details': l.details,
+            'user': l.user.username if l.user else 'System',
+            'ip': l.ip_address,
+            'timestamp': l.timestamp.strftime('%Y-%m-%d %H:%M:%S')
+        } for l in logs.items],
+        'total': logs.total,
+        'pages': logs.pages,
+        'current_page': page
+    })
+
+# --- AI Congestion Prediction API ---
+@app.route('/api/predictions')
+@login_required
+def get_predictions():
+    """Predict traffic congestion for the next 6 hours based on historical patterns.
+    Uses time-of-day weighted averages from stored LaneStats data.
+    """
+    from datetime import datetime as dt, timedelta
+    from sqlalchemy import func, extract
+    
+    now = dt.now()
+    predictions = []
+    
+    for offset in range(1, 7):  # Next 6 hours
+        target_hour = (now.hour + offset) % 24
+        
+        # Query historical average for this hour across all days
+        avg_result = db.session.query(
+            func.avg(LaneStats.vehicle_count)
+        ).filter(
+            extract('hour', LaneStats.timestamp) == target_hour
+        ).scalar()
+        
+        avg_count = round(float(avg_result or 0), 1)
+        
+        # Determine congestion level
+        if avg_count > 25:
+            level = 'High'
+            color = '#ef4444'
+        elif avg_count > 12:
+            level = 'Medium'
+            color = '#f59e0b'
+        else:
+            level = 'Low'
+            color = '#10b981'
+        
+        predictions.append({
+            'hour': f"{target_hour:02d}:00",
+            'label': (now + timedelta(hours=offset)).strftime('%I %p'),
+            'avg_vehicles': avg_count,
+            'level': level,
+            'color': color,
+            'confidence': min(95, 60 + int(avg_count * 0.8))  # Simulated confidence
+        })
+    
+    # Overall summary
+    peak_hour = max(predictions, key=lambda x: x['avg_vehicles'])
+    
+    return jsonify({
+        'predictions': predictions,
+        'peak_prediction': peak_hour,
+        'model': 'Historical Time-Series Average',
+        'generated_at': now.strftime('%H:%M:%S')
+    })
 
 if __name__ == '__main__':
     # Start the app

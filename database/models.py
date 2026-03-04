@@ -85,3 +85,36 @@ class DispatchLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
     report = db.relationship('AccidentReport', backref=db.backref('dispatches', lazy=True))
+
+class AuditLog(db.Model):
+    """Tracks all admin/system actions for accountability and compliance."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    action = db.Column(db.String(100), nullable=False)  # e.g., 'signal_override', 'dispatch_created', 'settings_changed'
+    details = db.Column(db.Text, nullable=True)          # JSON or text description
+    ip_address = db.Column(db.String(45), nullable=True) # Client IP
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('audit_logs', lazy=True))
+    
+    @staticmethod
+    def log(action, details=None, user_id=None, ip_address=None):
+        """Convenience method to create an audit log entry."""
+        entry = AuditLog(
+            action=action,
+            details=details,
+            user_id=user_id,
+            ip_address=ip_address
+        )
+        db.session.add(entry)
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+class SystemSetting(db.Model):
+    """Persistent system settings stored in database."""
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.Text, nullable=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

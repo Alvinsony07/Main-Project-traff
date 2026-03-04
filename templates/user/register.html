@@ -143,13 +143,77 @@
     </div>
 
     <script>
-        document.getElementById('registerForm').addEventListener('submit', function (e) {
-            var pwd = document.getElementById('password').value;
-            var cpwd = document.getElementById('confirm_password').value;
+        // Password strength meter
+        const pwdInput = document.getElementById('password');
+        const confirmInput = document.getElementById('confirm_password');
 
-            if (pwd !== cpwd) {
+        // Create strength meter UI
+        const meterWrap = document.createElement('div');
+        meterWrap.style.cssText = 'margin-top:6px;';
+        meterWrap.innerHTML = `
+            <div style="display:flex;gap:3px;margin-bottom:4px;">
+                <div id="str-bar-1" style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;transition:all 0.3s;"></div>
+                <div id="str-bar-2" style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;transition:all 0.3s;"></div>
+                <div id="str-bar-3" style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;transition:all 0.3s;"></div>
+                <div id="str-bar-4" style="flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px;transition:all 0.3s;"></div>
+            </div>
+            <div id="str-label" style="font-size:0.68rem;color:#64748b;letter-spacing:0.3px;"></div>
+        `;
+        pwdInput.parentElement.appendChild(meterWrap);
+
+        // Match indicator
+        const matchMsg = document.createElement('div');
+        matchMsg.id = 'match-msg';
+        matchMsg.style.cssText = 'font-size:0.72rem;margin-top:4px;';
+        confirmInput.parentElement.appendChild(matchMsg);
+
+        function assessStrength(pwd) {
+            let score = 0;
+            if (pwd.length >= 6) score++;
+            if (pwd.length >= 10) score++;
+            if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+            if (/[0-9]/.test(pwd)) score++;
+            if (/[^A-Za-z0-9]/.test(pwd)) score++;
+            return Math.min(score, 4);
+        }
+
+        const strengthColors = ['', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
+        const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+
+        pwdInput.addEventListener('input', function () {
+            const score = assessStrength(this.value);
+            for (let i = 1; i <= 4; i++) {
+                const bar = document.getElementById('str-bar-' + i);
+                bar.style.background = i <= score ? strengthColors[score] : 'rgba(255,255,255,0.08)';
+            }
+            document.getElementById('str-label').textContent = this.value ? strengthLabels[score] : '';
+            document.getElementById('str-label').style.color = strengthColors[score];
+            checkMatch();
+        });
+
+        confirmInput.addEventListener('input', checkMatch);
+
+        function checkMatch() {
+            const msg = document.getElementById('match-msg');
+            if (!confirmInput.value) { msg.textContent = ''; return; }
+            if (pwdInput.value === confirmInput.value) {
+                msg.innerHTML = '<i class="fas fa-check-circle"></i> Passwords match';
+                msg.style.color = '#10b981';
+            } else {
+                msg.innerHTML = '<i class="fas fa-times-circle"></i> Passwords do not match';
+                msg.style.color = '#ef4444';
+            }
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', function (e) {
+            if (pwdInput.value !== confirmInput.value) {
                 e.preventDefault();
                 alert('Passwords do not match. Please try again.');
+                return;
+            }
+            if (assessStrength(pwdInput.value) < 2) {
+                e.preventDefault();
+                alert('Password is too weak. Use at least 6 characters with uppercase and numbers.');
             }
         });
     </script>
