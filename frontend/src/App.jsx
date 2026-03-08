@@ -82,3 +82,46 @@ export default function App() {
                             <button
                                 key={item.id}
                                 onClick={() => setActivePage(item.id)}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '12px',
+                                    width: '100%', padding: '11px 16px', marginBottom: '2px',
+                                    borderRadius: '10px', border: 'none', cursor: 'pointer',
+                                    fontSize: '14px', fontWeight: '500', textAlign: 'left',
+                                    background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                                    color: isActive ? '#60a5fa' : '#94a3b8',
+                                    transition: 'all 0.2s',
+                                }}
+                                onMouseEnter={(e) => { if (!isActive) { e.target.style.background = 'rgba(51, 65, 85, 0.5)'; e.target.style.color = '#e2e8f0'; } }}
+                                onMouseLeave={(e) => { if (!isActive) { e.target.style.background = 'transparent'; e.target.style.color = '#94a3b8'; } }}
+                            >
+                                {item.name}
+                            </button>
+                        );
+                    })}
+                </nav>
+
+                {/* User info + Logout */}
+                <div style={{ padding: '16px', borderTop: '1px solid #334155' }}>
+                    <div style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '8px' }}>
+                        Logged in as <span style={{ color: '#e2e8f0', fontWeight: '600' }}>{user.username}</span>
+                        <span style={{ fontSize: '11px', color: '#60a5fa', marginLeft: '6px', textTransform: 'uppercase' }}>{user.role}</span>
+                    </div>
+                    <button onClick={handleLogout} style={{
+                        width: '100%', padding: '8px', borderRadius: '8px', border: '1px solid #475569',
+                        background: 'transparent', color: '#ef4444', fontSize: '13px', cursor: 'pointer',
+                        fontWeight: '500', transition: 'all 0.2s',
+                    }}>
+                        Logout
+                    </button>
+                </div>
+            </aside>
+
+            {/* Main Content */}
+            <main style={{ flex: 1, overflowY: 'auto', padding: '28px', background: 'radial-gradient(ellipse at top, #1e293b 0%, #0f172a 60%)' }}>
+                <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+                    {renderPage()}
+                </div>
+            </main>
+        </div>
+    );
+}

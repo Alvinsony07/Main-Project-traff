@@ -58,9 +58,8 @@ def verify_token(token: str):
 
 
 @router.post("/auth/login")
-def login(request: Request, db: Session = Depends(get_db)):
-    import json as _json
-    body = _json.loads(request._body.decode() if hasattr(request, '_body') else '{}')
+async def login(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
     username = body.get("username", "")
     password = body.get("password", "")
     client_ip = request.client.host if request.client else "unknown"
@@ -313,9 +312,8 @@ def get_settings():
     return _load_settings()
 
 @router.post("/settings")
-def save_settings(request: Request, db: Session = Depends(get_db)):
-    import json as _json
-    body = _json.loads(request._body.decode() if hasattr(request, '_body') else '{}')
+async def save_settings(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
     if not body:
         raise HTTPException(status_code=400, detail="No data provided")
 
@@ -428,10 +426,9 @@ async def setup_streams(
 # SIGNAL OVERRIDE
 # ========================
 @router.post("/override")
-def override_signal(request: Request, db: Session = Depends(get_db)):
+async def override_signal(request: Request, db: Session = Depends(get_db)):
     from backend.main import signal_controller
-    import json as _json
-    body = _json.loads(request._body.decode() if hasattr(request, '_body') else '{}')
+    body = await request.json()
     lane_id = int(body.get("lane_id", -1))
     if lane_id < 0 or lane_id > 3:
         raise HTTPException(status_code=400, detail="Invalid lane_id (0-3)")
@@ -446,9 +443,8 @@ def override_signal(request: Request, db: Session = Depends(get_db)):
 # AMBULANCE DISPATCH
 # ========================
 @router.post("/dispatch")
-def dispatch_ambulance(request: Request, db: Session = Depends(get_db)):
-    import json as _json
-    body = _json.loads(request._body.decode() if hasattr(request, '_body') else '{}')
+async def dispatch_ambulance(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
     report_id = int(body.get("report_id", 0))
     report = db.query(AccidentReport).get(report_id)
     if not report:
@@ -503,9 +499,8 @@ def decline_dispatch(dispatch_id: int, db: Session = Depends(get_db)):
     return {"success": True}
 
 @router.post("/dispatch/{dispatch_id}/status")
-def update_dispatch_status(dispatch_id: int, request: Request, db: Session = Depends(get_db)):
-    import json as _json
-    body = _json.loads(request._body.decode() if hasattr(request, '_body') else '{}')
+async def update_dispatch_status(dispatch_id: int, request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
     d = db.query(DispatchLog).get(dispatch_id)
     if not d:
         raise HTTPException(status_code=404, detail="Dispatch not found")
