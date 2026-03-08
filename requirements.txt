@@ -1,9 +1,0 @@
-flask
-flask-sqlalchemy
-flask-wtf
-flask-limiter
-opencv-python
-ultralytics
-werkzeug
-easyocr
-reportlab
