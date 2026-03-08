@@ -22,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router.router, prefix="/api")
+app.include_router(api_router, prefix="/api")
 
 signal_controller = SignalController(num_lanes=4)
 video_processor = VideoProcessor(settings, signal_controller)

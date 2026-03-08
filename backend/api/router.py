@@ -602,3 +602,123 @@ def create_admin(db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     return {"message": "Admin user created (admin/admin123)"}
+
+
+# ========================
+# USER REGISTRATION
+# ========================
+@router.post("/auth/register")
+async def register(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    username = body.get("username", "").strip()
+    full_name = body.get("full_name", "").strip()
+    phone_number = body.get("phone_number", "").strip()
+    organization = body.get("organization", "").strip()
+    password = body.get("password", "")
+    confirm_password = body.get("confirm_password", "")
+
+    if not username or len(username) < 3:
+        raise HTTPException(status_code=400, detail="Username must be at least 3 characters")
+    if not full_name:
+        raise HTTPException(status_code=400, detail="Full Name is required")
+    if password != confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    user = User(
+        username=username, full_name=full_name,
+        phone_number=phone_number, organization=organization,
+        password_hash=pwd_context.hash(password), role="user"
+    )
+    db.add(user)
+    db.commit()
+    return {"success": True, "message": "Registration successful"}
+
+
+# ========================
+# ACCIDENT REPORTING
+# ========================
+@router.post("/report_accident")
+async def report_accident(request: Request, db: Session = Depends(get_db)):
+    body = await request.json()
+    location = body.get("location", "").strip()
+    description = body.get("description", "").strip()
+    latitude = body.get("latitude")
+    longitude = body.get("longitude")
+    user_id = body.get("user_id")
+
+    if not location:
+        raise HTTPException(status_code=400, detail="Location is required")
+
+    try:
+        lat_val = float(latitude) if latitude else None
+    except (ValueError, TypeError):
+        lat_val = None
+    try:
+        lng_val = float(longitude) if longitude else None
+    except (ValueError, TypeError):
+        lng_val = None
+
+    report = AccidentReport(
+        user_id=user_id, location=location,
+        description=description, latitude=lat_val,
+        longitude=lng_val, status="Reported"
+    )
+    db.add(report)
+    db.commit()
+    return {"success": True, "report_id": report.id}
+
+
+@router.get("/reports")
+def get_reports(db: Session = Depends(get_db)):
+    import html as _html
+    reports = db.query(AccidentReport).order_by(AccidentReport.timestamp.desc()).limit(20).all()
+    return {"reports": [{
+        "id": r.id, "location": _html.escape(r.location or ""),
+        "description": _html.escape(r.description or ""),
+        "latitude": r.latitude, "longitude": r.longitude,
+        "timestamp": r.timestamp.strftime("%H:%M:%S"),
+        "status": r.status,
+        "user": _html.escape(r.user.username) if r.user else "Unknown"
+    } for r in reports]}
+
+
+# ========================
+# ADMIN: USER MANAGEMENT
+# ========================
+@router.get("/users")
+def list_users(db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return {"users": [{
+        "id": u.id, "username": u.username, "full_name": u.full_name,
+        "phone_number": u.phone_number, "organization": u.organization,
+        "role": u.role, "is_locked": u.is_locked,
+        "created_at": u.created_at.strftime("%Y-%m-%d %H:%M") if u.created_at else ""
+    } for u in users]}
+
+
+@router.post("/users/{user_id}/unlock")
+def unlock_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_locked = False
+    user.failed_login_attempts = 0
+    db.commit()
+    return {"success": True}
+
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Cannot delete admin user")
+    db.delete(user)
+    db.commit()
+    return {"success": True}
+

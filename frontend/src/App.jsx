@@ -1,25 +1,31 @@
 import { useState, useEffect } from 'react';
 import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import UserDashboard from './pages/UserDashboard';
 import Analytics from './pages/Analytics';
 import CityOverview from './pages/CityOverview';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import CameraConfig from './pages/CameraConfig';
 import AmbulancePortal from './pages/AmbulancePortal';
+import UserManagement from './pages/UserManagement';
 
 const navItems = [
-    { name: 'Dashboard', id: 'dashboard' },
+    { name: 'Dashboard', id: 'dashboard', adminOnly: true },
+    { name: 'My Dashboard', id: 'user_dashboard', userOnly: true },
     { name: 'Analytics', id: 'analytics' },
     { name: 'City Overview', id: 'city_overview' },
     { name: 'Reports', id: 'reports' },
     { name: 'Camera Config', id: 'camera_config', adminOnly: true },
+    { name: 'User Management', id: 'user_mgmt', adminOnly: true },
     { name: 'Settings', id: 'settings', adminOnly: true },
 ];
 
 export default function App() {
     const [activePage, setActivePage] = useState('dashboard');
     const [user, setUser] = useState(null);
+    const [showRegister, setShowRegister] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -27,6 +33,7 @@ export default function App() {
         const role = localStorage.getItem('role');
         if (token && username) {
             setUser({ username, role, token });
+            setActivePage(role === 'admin' ? 'dashboard' : 'user_dashboard');
         }
     }, []);
 
@@ -35,6 +42,7 @@ export default function App() {
         localStorage.setItem('username', userData.username);
         localStorage.setItem('role', userData.role);
         setUser(userData);
+        setActivePage(userData.role === 'admin' ? 'dashboard' : 'user_dashboard');
     };
 
     const handleLogout = () => {
@@ -50,21 +58,38 @@ export default function App() {
     }
 
     if (!user) {
-        return <Login onLogin={handleLogin} />;
+        if (showRegister) {
+            return <Register onNavigateToLogin={() => setShowRegister(false)} />;
+        }
+        return (
+            <div style={{ position: 'relative' }}>
+                <Login onLogin={handleLogin} />
+                <div style={{ position: 'absolute', bottom: '40px', width: '100%', textAlign: 'center' }}>
+                    <span style={{ color: '#94a3b8', fontSize: '14px' }}>Don't have an account? </span>
+                    <button onClick={() => setShowRegister(true)} style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', fontSize: '14px', textDecoration: 'underline' }}>Sign up here</button>
+                </div>
+            </div>
+        );
     }
 
     const renderPage = () => {
         switch (activePage) {
+            case 'user_dashboard': return <UserDashboard user={user} />;
             case 'analytics': return <Analytics />;
             case 'city_overview': return <CityOverview />;
             case 'reports': return <Reports />;
             case 'camera_config': return <CameraConfig />;
+            case 'user_mgmt': return <UserManagement />;
             case 'settings': return <Settings />;
             default: return <Dashboard />;
         }
     };
 
-    const filteredNav = navItems.filter(item => !item.adminOnly || user.role === 'admin');
+    const filteredNav = navItems.filter(item => {
+        if (item.adminOnly && user.role !== 'admin') return false;
+        if (item.userOnly && user.role === 'admin') return false;
+        return true;
+    });
 
     return (
         <div style={{ display: 'flex', height: '100vh', background: '#0f172a', color: '#f8fafc', fontFamily: "'Inter', 'Segoe UI', sans-serif", overflow: 'hidden' }}>
