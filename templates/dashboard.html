@@ -642,15 +642,27 @@
                 });
         }
 
+        let camFails = [0, 0, 0, 0];
+        let nextPollTime = [0, 0, 0, 0];
         function updateVideos() {
             const t = new Date().getTime();
             for (let i = 0; i < 4; i++) {
+                if (t < nextPollTime[i]) continue;
+                
                 const img = document.getElementById(`video-lane-${i}`);
                 if (img) {
-                    // Preload to avoid flicker
                     const newSrc = `/video_snapshot/${i}?t=${t}`;
                     const loader = new Image();
-                    loader.onload = () => { img.src = newSrc; };
+                    loader.onload = () => { 
+                        img.src = newSrc; 
+                        camFails[i] = 0; // reset
+                    };
+                    loader.onerror = () => {
+                        camFails[i]++;
+                        // Backoff polling on failure: max 5 seconds
+                        const backoff = Math.min(5000, 100 * Math.pow(2, camFails[i]));
+                        nextPollTime[i] = t + backoff;
+                    };
                     loader.src = newSrc;
                 }
             }

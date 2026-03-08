@@ -1169,6 +1169,14 @@
             btn.innerHTML = '<i class="fas fa-check"></i> Updated';
             btn.style.pointerEvents = 'none';
 
+            // Optimistically update the counts if it's Complete
+            const enrouteEl = document.getElementById('s-enroute');
+            const totalEl = document.getElementById('s-total');
+            if (status === 'Complete') {
+                enrouteEl.textContent = Math.max(0, parseInt(enrouteEl.textContent || '0') - 1);
+                totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '0') - 1);
+            }
+
             // Optimistically update the card immediately (no DOM rebuild, maps stay alive)
             updateCardInPlace(card, status);
 
@@ -1202,6 +1210,12 @@
         function acceptDispatch(id, btn) {
             const card = btn.closest('.d-card');
             speak("Dispatch accepted. Proceed to incident location.");
+
+            const pendingEl = document.getElementById('s-pending');
+            const enrouteEl = document.getElementById('s-enroute');
+            pendingEl.textContent = Math.max(0, parseInt(pendingEl.textContent || '0') - 1);
+            enrouteEl.textContent = parseInt(enrouteEl.textContent || '0') + 1;
+
             updateCardInPlace(card, 'En Route');
 
             // Background server sync
@@ -1218,6 +1232,12 @@
                 .then(d => {
                     if (d.success) {
                         const card = btn.closest('.d-card');
+
+                        const pendingEl = document.getElementById('s-pending');
+                        const totalEl = document.getElementById('s-total');
+                        pendingEl.textContent = Math.max(0, parseInt(pendingEl.textContent || '0') - 1);
+                        totalEl.textContent = Math.max(0, parseInt(totalEl.textContent || '0') - 1);
+
                         card.style.opacity = '0'; card.style.transform = 'translateX(100%)';
                         setTimeout(() => { card.remove(); if (!document.querySelector('.d-card')) document.getElementById('empty-state').style.display = 'block'; }, 400);
                         speak("Dispatch declined.");

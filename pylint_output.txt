@@ -1,0 +1,24 @@
+************* Module models
+models\__init__.py:1:0: F0010: error while code parsing: Unable to load file models\__init__.py:
+[Errno 2] No such file or directory: 'models\\__init__.py' (parse-error)
+************* Module app
+app.py:5:0: E0401: Unable to import 'models.signal_controller' (import-error)
+app.py:5:0: E0611: No name 'signal_controller' in module 'models' (no-name-in-module)
+database\models.py:2:0: E0402: Attempted relative import beyond top-level package (relative-beyond-top-level)
+************* Module video_processor
+utils\video_processor.py:4:0: E0401: Unable to import 'models.vehicle_detector' (import-error)
+utils\video_processor.py:4:0: E0611: No name 'vehicle_detector' in module 'models' (no-name-in-module)
+utils\video_processor.py:5:0: E0401: Unable to import 'models.ambulance_detector' (import-error)
+utils\video_processor.py:5:0: E0611: No name 'ambulance_detector' in module 'models' (no-name-in-module)
+utils\video_processor.py:6:0: E0401: Unable to import 'models.traffic_logic' (import-error)
+utils\video_processor.py:6:0: E0611: No name 'traffic_logic' in module 'models' (no-name-in-module)
+utils\video_processor.py:46:31: E1101: Module 'cv2' has no 'VideoCapture' member (no-member)
+utils\video_processor.py:86:32: E1101: Module 'cv2' has no 'resize' member (no-member)
+utils\video_processor.py:146:28: E1101: Module 'cv2' has no 'rectangle' member (no-member)
+utils\video_processor.py:147:28: E1101: Module 'cv2' has no 'putText' member (no-member)
+utils\video_processor.py:148:40: E1101: Module 'cv2' has no 'FONT_HERSHEY_SIMPLEX' member (no-member)
+utils\video_processor.py:164:28: E1101: Module 'cv2' has no 'rectangle' member (no-member)
+utils\video_processor.py:165:28: E1101: Module 'cv2' has no 'putText' member (no-member)
+utils\video_processor.py:166:40: E1101: Module 'cv2' has no 'FONT_HERSHEY_SIMPLEX' member (no-member)
+utils\video_processor.py:169:36: E1101: Module 'cv2' has no 'imencode' member (no-member)
+utils\video_processor.py:169:69: E1101: Module 'cv2' has no 'IMWRITE_JPEG_QUALITY' member (no-member)

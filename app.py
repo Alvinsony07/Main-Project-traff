@@ -678,7 +678,6 @@ def dispatch_ambulance():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/active')
-@login_required
 def get_active_dispatches():
     """Get active dispatches for the ambulance driver portal"""
     dispatches = DispatchLog.query.filter(
@@ -702,7 +701,6 @@ def get_active_dispatches():
     })
 
 @app.route('/api/dispatch/<int:dispatch_id>/accept', methods=['POST'])
-@login_required
 def accept_dispatch(dispatch_id):
     """Ambulance driver accepts a dispatch"""
     try:
@@ -717,7 +715,6 @@ def accept_dispatch(dispatch_id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/<int:dispatch_id>/decline', methods=['POST'])
-@login_required
 def decline_dispatch(dispatch_id):
     """Ambulance driver declines a dispatch"""
     try:
@@ -732,7 +729,6 @@ def decline_dispatch(dispatch_id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/dispatch/<int:dispatch_id>/status', methods=['POST'])
-@login_required
 def update_dispatch_status(dispatch_id):
     """Update dispatch status to any valid step"""
     try:
@@ -751,7 +747,6 @@ def update_dispatch_status(dispatch_id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/ambulance')
-@login_required
 def ambulance_portal():
     """Ambulance Driver Portal - receives live dispatch alerts"""
     return render_template('ambulance.html')
